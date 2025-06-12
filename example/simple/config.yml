@@ -1,0 +1,24 @@
+hosts:
+  - http://localhost:8091
+bucketName: bucketName
+username: user
+password: pass
+logging:
+  level: info
+dcp:
+  group:
+    name: groupName
+metadata:
+  config:
+    bucket: checkpoint-bucket-name
+    scope: _default
+    collection: _default
+  type: couchbase
+mongodb:
+  uri: "localhost:27017"
+  database: exampleDB
+  collection: exampleCollection
+  batchTickerDuration: 10s
+  concurrentRequest: 1
+  shardKeys:
+    - "customer.id"
