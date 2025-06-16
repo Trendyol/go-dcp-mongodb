@@ -27,10 +27,6 @@ func DefaultMapper(event couchbase.Event) []mongodb.Model {
 		ID:        docID,
 	}
 
-	if operation == mongodb.Delete {
-		model.Document = map[string]interface{}{"_id": docID}
-	}
-
 	return []mongodb.Model{model}
 }
 
