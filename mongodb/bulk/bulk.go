@@ -284,12 +284,10 @@ func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
 func (b *Bulk) buildFilter(document map[string]interface{}) bson.M {
 	filter := bson.M{"_id": document["_id"]}
 
-	if b.shardKeys != nil {
-		for _, shardKey := range b.shardKeys {
-			value := b.getNestedValue(document, shardKey)
-			if value != nil {
-				filter[shardKey] = value
-			}
+	for _, shardKey := range b.shardKeys {
+		value := b.getNestedValue(document, shardKey)
+		if value != nil {
+			filter[shardKey] = value
 		}
 	}
 
