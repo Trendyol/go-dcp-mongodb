@@ -30,3 +30,14 @@ Check out on [go-dcp](https://github.com/Trendyol/go-dcp#configuration)
 | `mongodb.batchByteSizeLimit`        | int, string       | no       | 10mb    | Maximum size(byte) for batch, if exceed flush will be triggered. `10mb` is default.                                                                          |
 | `mongodb.concurrentRequest`         | int               | no       | 1       | Concurrent bulk request count.                                                                                                                               |
 | `mongodb.shardKeys`                 | []string          | no       |         | List of shard key paths from document for MongoDB sharded clusters. Used in query filters.                                                                   |
+
+## Exposed metrics
+
+| Metric Name                                                      | Description                   | Labels                                                                                                                                                                             | Value Type |
+|------------------------------------------------------------------|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| cbgo_mongodb_connector_latency_ms_current                        | Time to adding to the batch.  | N/A                                                                                                                                                                                | Gauge      |
+| cbgo_mongodb_connector_bulk_request_process_latency_ms_current   | Time to process bulk request. | N/A                                                                                                                                                                                | Gauge      |
+| cbgo_mongodb_connector_action_total_current                      | Count mongodb actions         | `action_type`: Type of action (e.g., `delete`) `result`: Result of the action (e.g., `success`, `error`)  `database_name`: The name of the database to which the action is applied | Counter    |
+
+You can also use all DCP-related metrics explained [here](https://github.com/Trendyol/go-dcp#exposed-metrics).
+All DCP-related metrics are automatically injected. It means you don't need to do anything.

@@ -3,7 +3,7 @@
 default: init
 
 init:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.1.6
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6
 	go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@v0.15.0
 
 clean:

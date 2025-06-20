@@ -24,6 +24,11 @@ func (s *Collector) Collect(ch chan<- prometheus.Metric) {
 
 	bulkMetric := s.bulk.GetMetric()
 
+	s.collectLatencyMetrics(ch, bulkMetric)
+	s.collectActionCounters(ch, bulkMetric)
+}
+
+func (s *Collector) collectLatencyMetrics(ch chan<- prometheus.Metric, bulkMetric *bulk.Metric) {
 	ch <- prometheus.MustNewConstMetric(
 		s.processLatency,
 		prometheus.GaugeValue,
@@ -37,49 +42,25 @@ func (s *Collector) Collect(ch chan<- prometheus.Metric) {
 		float64(bulkMetric.BulkRequestProcessLatencyMs),
 		[]string{}...,
 	)
+}
 
-	for collection, count := range bulkMetric.InsertErrorCounter {
+func (s *Collector) collectActionCounters(ch chan<- prometheus.Metric, bulkMetric *bulk.Metric) {
+	s.collectCounterMap(ch, bulkMetric.InsertErrorCounter, "insert", "error")
+	s.collectCounterMap(ch, bulkMetric.UpdateSuccessCounter, "update", "success")
+	s.collectCounterMap(ch, bulkMetric.UpdateErrorCounter, "update", "error")
+	s.collectCounterMap(ch, bulkMetric.DeleteSuccessCounter, "delete", "success")
+	s.collectCounterMap(ch, bulkMetric.DeleteErrorCounter, "delete", "error")
+}
+
+func (s *Collector) collectCounterMap(
+	ch chan<- prometheus.Metric, counterMap map[string]int64, actionType, result string,
+) {
+	for collection, count := range counterMap {
 		ch <- prometheus.MustNewConstMetric(
 			s.actionCounter,
 			prometheus.CounterValue,
 			float64(count),
-			"insert", "error", collection,
-		)
-	}
-
-	for collection, count := range bulkMetric.UpdateSuccessCounter {
-		ch <- prometheus.MustNewConstMetric(
-			s.actionCounter,
-			prometheus.CounterValue,
-			float64(count),
-			"update", "success", collection,
-		)
-	}
-
-	for collection, count := range bulkMetric.UpdateErrorCounter {
-		ch <- prometheus.MustNewConstMetric(
-			s.actionCounter,
-			prometheus.CounterValue,
-			float64(count),
-			"update", "error", collection,
-		)
-	}
-
-	for collection, count := range bulkMetric.DeleteSuccessCounter {
-		ch <- prometheus.MustNewConstMetric(
-			s.actionCounter,
-			prometheus.CounterValue,
-			float64(count),
-			"delete", "success", collection,
-		)
-	}
-
-	for collection, count := range bulkMetric.DeleteErrorCounter {
-		ch <- prometheus.MustNewConstMetric(
-			s.actionCounter,
-			prometheus.CounterValue,
-			float64(count),
-			"delete", "error", collection,
+			actionType, result, collection,
 		)
 	}
 }
