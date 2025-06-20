@@ -52,7 +52,6 @@ type BatchItem struct {
 }
 
 type Metric struct {
-	InsertSuccessCounter        map[string]int64
 	InsertErrorCounter          map[string]int64
 	UpdateSuccessCounter        map[string]int64
 	UpdateErrorCounter          map[string]int64
@@ -87,7 +86,6 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 		batchKeys:           make(map[string]int, cfg.MongoDB.BatchSizeLimit),
 		shardKeys:           shardKeys,
 		metric: &Metric{
-			InsertSuccessCounter: make(map[string]int64),
 			InsertErrorCounter:   make(map[string]int64),
 			UpdateSuccessCounter: make(map[string]int64),
 			UpdateErrorCounter:   make(map[string]int64),
@@ -337,7 +335,6 @@ func (b *Bulk) recordSuccess(collection string, result *mongo.BulkWriteResult) {
 	b.metricCounterMutex.Lock()
 	defer b.metricCounterMutex.Unlock()
 
-	b.metric.InsertSuccessCounter[collection] += result.InsertedCount
 	b.metric.UpdateSuccessCounter[collection] += result.ModifiedCount + result.UpsertedCount
 	b.metric.DeleteSuccessCounter[collection] += result.DeletedCount
 }
@@ -354,4 +351,16 @@ func (b *Bulk) checkAndCommit() {
 	default:
 		return
 	}
+}
+
+func (b *Bulk) GetMetric() *Metric {
+	return b.metric
+}
+
+func (b *Bulk) LockMetrics() {
+	b.metricCounterMutex.Lock()
+}
+
+func (b *Bulk) UnlockMetrics() {
+	b.metricCounterMutex.Unlock()
 }
