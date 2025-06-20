@@ -3,6 +3,16 @@
 **Go Dcp MongoDB** streams documents from Couchbase Database Change Protocol (DCP) and writes to
 MongoDB document in near real-time.
 
+## Features
+
+* **Custom routing** support(see [Example](#example)).
+* **Update multiple documents** for a DCP event(see [Example](#example)).
+* Handling different DCP events such as **expiration, deletion and mutation**(see [Example](#example)).
+* **Managing batch configurations** such as maximum batch size, batch bytes, batch ticker durations.
+* **Scale up and down** by custom membership algorithms(Couchbase, KubernetesHa, Kubernetes StatefulSet or
+  Static, see [examples](https://github.com/Trendyol/go-dcp#examples)).
+* **Easily manageable configurations**.
+
 ## Example
 
 [File Config](example/simple/main.go)
