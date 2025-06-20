@@ -14,7 +14,9 @@ type Event struct {
 	IsMutated      bool
 }
 
-func NewDeleteEvent(key []byte, value []byte, collectionName string, eventTime time.Time, cas uint64, vbID uint16) Event {
+func NewDeleteEvent(
+	key []byte, value []byte, collectionName string, eventTime time.Time, cas uint64, vbID uint16,
+) Event {
 	return Event{
 		Key:            key,
 		Value:          value,
@@ -26,7 +28,9 @@ func NewDeleteEvent(key []byte, value []byte, collectionName string, eventTime t
 	}
 }
 
-func NewExpireEvent(key []byte, value []byte, collectionName string, eventTime time.Time, cas uint64, vbID uint16) Event {
+func NewExpireEvent(
+	key []byte, value []byte, collectionName string, eventTime time.Time, cas uint64, vbID uint16,
+) Event {
 	return Event{
 		Key:            key,
 		Value:          value,
@@ -38,7 +42,9 @@ func NewExpireEvent(key []byte, value []byte, collectionName string, eventTime t
 	}
 }
 
-func NewMutateEvent(key []byte, value []byte, collectionName string, eventTime time.Time, cas uint64, vbID uint16) Event {
+func NewMutateEvent(
+	key []byte, value []byte, collectionName string, eventTime time.Time, cas uint64, vbID uint16,
+) Event {
 	return Event{
 		Key:            key,
 		Value:          value,

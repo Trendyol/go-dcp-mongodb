@@ -11,7 +11,26 @@ import (
 )
 
 func TestBulkOperations(t *testing.T) {
-	// Create test configuration
+	bulk := createTestBulk(t)
+
+	t.Run("TestInsertOperation", func(t *testing.T) {
+		testInsertOperation(t)
+	})
+
+	t.Run("TestUpdateOperation", func(t *testing.T) {
+		testUpdateOperation(t)
+	})
+
+	t.Run("TestDeleteOperation", func(t *testing.T) {
+		testDeleteOperation(t)
+	})
+
+	t.Run("TestBatchDeduplication", func(t *testing.T) {
+		testBatchDeduplication(t, bulk)
+	})
+}
+
+func createTestBulk(t *testing.T) *Bulk {
 	cfg := &config.Config{
 		MongoDB: config.MongoDB{
 			URI:                 "mongodb://localhost:27017",
@@ -25,68 +44,65 @@ func TestBulkOperations(t *testing.T) {
 	}
 	cfg.ApplyDefaults()
 
-	// Create bulk processor
 	bulk, err := NewBulk(cfg, func() {
-		// Mock checkpoint commit
 		t.Log("Checkpoint committed")
 	})
 	if err != nil {
 		t.Fatalf("Failed to create bulk processor: %v", err)
 	}
 
-	// Test adding different operation types
-	t.Run("TestInsertOperation", func(t *testing.T) {
-		model := &mongodb.Raw{
-			Document: bson.M{
-				"_id":  "test123",
-				"name": "Test Document",
-			},
-			Operation: mongodb.Insert,
-			ID:        "test123",
-		}
+	return bulk
+}
 
-		// Check that the model is properly created
-		if model.Operation != mongodb.Insert {
-			t.Errorf("Expected operation to be Insert, got %v", model.Operation)
-		}
+func testInsertOperation(t *testing.T) {
+	model := &mongodb.Raw{
+		Document: bson.M{
+			"_id":  "test123",
+			"name": "Test Document",
+		},
+		Operation: mongodb.Insert,
+		ID:        "test123",
+	}
+
+	if model.Operation != mongodb.Insert {
+		t.Errorf("Expected operation to be Insert, got %v", model.Operation)
+	}
+}
+
+func testUpdateOperation(t *testing.T) {
+	model := &mongodb.Raw{
+		Document: bson.M{
+			"name": "Updated Document",
+		},
+		Operation: mongodb.Update,
+		ID:        "test123",
+	}
+
+	if model.Operation != mongodb.Update {
+		t.Errorf("Expected operation to be Update, got %v", model.Operation)
+	}
+}
+
+func testDeleteOperation(t *testing.T) {
+	model := &mongodb.Raw{
+		Operation: mongodb.Delete,
+		ID:        "test123",
+	}
+
+	if model.Operation != mongodb.Delete {
+		t.Errorf("Expected operation to be Delete, got %v", model.Operation)
+	}
+}
+
+func testBatchDeduplication(t *testing.T, bulk *Bulk) {
+	key := bulk.getActionKey(&mongodb.Raw{
+		ID: "doc1",
 	})
 
-	t.Run("TestUpdateOperation", func(t *testing.T) {
-		model := &mongodb.Raw{
-			Document: bson.M{
-				"name": "Updated Document",
-			},
-			Operation: mongodb.Update,
-			ID:        "test123",
-		}
-
-		if model.Operation != mongodb.Update {
-			t.Errorf("Expected operation to be Update, got %v", model.Operation)
-		}
-	})
-
-	t.Run("TestDeleteOperation", func(t *testing.T) {
-		model := &mongodb.Raw{
-			Operation: mongodb.Delete,
-			ID:        "test123",
-		}
-
-		if model.Operation != mongodb.Delete {
-			t.Errorf("Expected operation to be Delete, got %v", model.Operation)
-		}
-	})
-
-	t.Run("TestBatchDeduplication", func(t *testing.T) {
-		// Test that duplicate keys are handled properly
-		key := bulk.getActionKey(&mongodb.Raw{
-			ID: "doc1",
-		})
-
-		expectedKey := "test:doc1"
-		if key != expectedKey {
-			t.Errorf("Expected key %s, got %s", expectedKey, key)
-		}
-	})
+	expectedKey := "test:doc1"
+	if key != expectedKey {
+		t.Errorf("Expected key %s, got %s", expectedKey, key)
+	}
 }
 
 func Test_it_should_build_shard_filter_with_configured_shard_keys(t *testing.T) {

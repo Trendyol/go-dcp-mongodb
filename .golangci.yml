@@ -1,3 +1,5 @@
+version: 2
+
 linters-settings:
   lll:
     line-length: 140
@@ -15,17 +17,13 @@ linters:
     - goconst
     - gocritic
     - gocyclo
-    - gosimple
     - govet
     - gosec
     - ineffassign
     - lll
     - misspell
     - nakedret
-    - gofumpt
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - unused
@@ -33,6 +31,6 @@ linters:
     - prealloc
 
 service:
-  golangci-lint-version: 1.55.2 # use the fixed version to not introduce new linters unexpectedly
+  golangci-lint-version: 2.1.6 # use the fixed version to not introduce new linters unexpectedly
   prepare:
     - echo "here I can run custom commands, but no preparation needed for this repo"

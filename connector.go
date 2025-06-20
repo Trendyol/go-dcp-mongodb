@@ -4,17 +4,18 @@ import (
 	"errors"
 	"github.com/Trendyol/go-dcp-mongodb/metric"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/Trendyol/go-dcp"
+	godcp "github.com/Trendyol/go-dcp"
 	config "github.com/Trendyol/go-dcp-mongodb/configs"
 	"github.com/Trendyol/go-dcp-mongodb/couchbase"
 	"github.com/Trendyol/go-dcp-mongodb/mongodb/bulk"
 	"github.com/Trendyol/go-dcp/logger"
 	"github.com/Trendyol/go-dcp/models"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
+	yamlv3 "gopkg.in/yaml.v3"
 )
 
 type Connector interface {
@@ -24,7 +25,7 @@ type Connector interface {
 }
 
 type connector struct {
-	dcp    dcp.Dcp
+	dcp    godcp.Dcp
 	mapper Mapper
 	config *config.Config
 	bulk   *bulk.Bulk
@@ -76,13 +77,19 @@ type ConnectorBuilder struct {
 }
 
 func newConnectorConfigFromPath(path string) (*config.Config, error) {
-	file, err := os.ReadFile(path)
+	cleanPath := filepath.Clean(path)
+
+	if strings.Contains(cleanPath, "..") {
+		return nil, errors.New("invalid config path: path traversal not allowed")
+	}
+
+	file, err := os.ReadFile(cleanPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var c config.Config
-	err = yaml.Unmarshal(file, &c)
+	err = yamlv3.Unmarshal(file, &c)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +104,7 @@ func newConnectorConfigFromPath(path string) (*config.Config, error) {
 		}
 	}
 
-	err = yaml.Unmarshal(file, &c)
+	err = yamlv3.Unmarshal(file, &c)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +137,7 @@ func newConnector(cf any, mapper Mapper) (Connector, error) {
 		config: cfg,
 	}
 
-	dcp, err := dcp.NewDcp(&cfg.Dcp, connector.listener)
+	dcp, err := godcp.NewDcp(&cfg.Dcp, connector.listener)
 	if err != nil {
 		logger.Log.Error("Dcp error: %v", err)
 		return nil, err

@@ -268,7 +268,7 @@ func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
 					}
 					continue
 				}
-				b.recordErrors(collectionName, writeModels, err)
+				b.recordErrors(collectionName, writeModels)
 				return fmt.Errorf("bulk write error for collection %s: %v", collectionName, err)
 			}
 
@@ -315,7 +315,7 @@ func (b *Bulk) getNestedValue(document map[string]interface{}, path string) inte
 	return current
 }
 
-func (b *Bulk) recordErrors(collection string, operations []mongo.WriteModel, err error) {
+func (b *Bulk) recordErrors(collection string, operations []mongo.WriteModel) {
 	b.metricCounterMutex.Lock()
 	defer b.metricCounterMutex.Unlock()
 
