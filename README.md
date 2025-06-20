@@ -51,3 +51,12 @@ Check out on [go-dcp](https://github.com/Trendyol/go-dcp#configuration)
 
 You can also use all DCP-related metrics explained [here](https://github.com/Trendyol/go-dcp#exposed-metrics).
 All DCP-related metrics are automatically injected. It means you don't need to do anything.
+
+## Contributing
+
+Go Dcp MongoDB is always open for direct contributions. For more information please check
+our [Contribution Guideline document](./CONTRIBUTING.md).
+
+## License
+
+Released under the [MIT License](LICENSE).
