@@ -15,6 +15,8 @@ MongoDB document in near real-time.
 
 ## Example
 
+[Struct Config](example/struct-config/main.go)
+
 [File Config](example/simple/main.go)
 
 [Default Mapper](example/default-mapper/main.go)
@@ -51,6 +53,10 @@ Check out on [go-dcp](https://github.com/Trendyol/go-dcp#configuration)
 
 You can also use all DCP-related metrics explained [here](https://github.com/Trendyol/go-dcp#exposed-metrics).
 All DCP-related metrics are automatically injected. It means you don't need to do anything.
+
+## Grafana Metric Dashboard
+
+[Grafana & Prometheus Example](example/grafana)
 
 ## Contributing
 

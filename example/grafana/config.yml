@@ -1,0 +1,25 @@
+hosts:
+  - couchbase:8091
+bucketName: dcp-test
+username: user
+password: password
+logging:
+  level: info
+dcp:
+  group:
+    name: groupName
+metadata:
+  config:
+    bucket: dcp-test
+    scope: _default
+    collection: _default
+  type: couchbase
+mongodb:
+  uri: "mongodb:27017"
+  database: exampleDB
+  collection: exampleCollection
+  batchSizeLimit: 10
+  batchTickerDuration: 10s
+  concurrentRequest: 1
+  shardKeys:
+    - "customer.id"

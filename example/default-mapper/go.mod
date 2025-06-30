@@ -4,7 +4,7 @@ go 1.24.0
 
 replace github.com/Trendyol/go-dcp-mongodb => ./../..
 
-require github.com/Trendyol/go-dcp-mongodb v0.0.0
+require github.com/Trendyol/go-dcp-mongodb v0.0.1
 
 require (
 	github.com/Trendyol/go-dcp v1.2.6 // indirect

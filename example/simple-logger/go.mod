@@ -5,12 +5,12 @@ go 1.24.0
 replace github.com/Trendyol/go-dcp-mongodb => ./../..
 
 require (
-	github.com/Trendyol/go-dcp v1.2.6
 	github.com/Trendyol/go-dcp-mongodb v0.0.1
-	go.mongodb.org/mongo-driver v1.13.1
+	github.com/sirupsen/logrus v1.9.3
 )
 
 require (
+	github.com/Trendyol/go-dcp v1.2.6 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/ansrivas/fiberprometheus/v2 v2.7.0 // indirect
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef // indirect
@@ -51,7 +51,6 @@ require (
 	github.com/prometheus/common v0.58.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.57.0 // indirect
@@ -60,6 +59,7 @@ require (
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
+	go.mongodb.org/mongo-driver v1.13.1 // indirect
 	golang.org/x/arch v0.16.0 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/net v0.38.0 // indirect

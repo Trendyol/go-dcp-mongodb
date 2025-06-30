@@ -4,7 +4,7 @@ WORKDIR /project
 
 COPY . .
 
-WORKDIR /project/example/default-mapper
+WORKDIR /project/example/simple-logger
 
 RUN go mod download
 RUN CGO_ENABLED=0 go build -a -o example main.go
@@ -16,7 +16,7 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates
 
 USER nobody
-COPY --from=builder --chown=nobody:nobody /project/example/default-mapper/example .
-COPY --from=builder --chown=nobody:nobody /project/example/default-mapper/config.yml ./config.yml
+COPY --from=builder --chown=nobody:nobody /project/example/simple-logger/example .
+COPY --from=builder --chown=nobody:nobody /project/example/simple-logger/config.yml ./config.yml
 
 ENTRYPOINT ["./example"]
