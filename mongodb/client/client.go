@@ -35,7 +35,11 @@ func NewMongoClient(cfg config.MongoDB) (*mongo.Client, error) {
 	defer pingCancel()
 
 	if err = client.Ping(pingCtx, nil); err != nil {
-		client.Disconnect(ctx)
+		errDisc := client.Disconnect(ctx)
+		if errDisc != nil {
+			return nil, errDisc
+		}
+
 		return nil, err
 	}
 
