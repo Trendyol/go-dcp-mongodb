@@ -1,0 +1,24 @@
+version: "3.8"
+services:
+  couchbase:
+    build:
+      context: "test/couchbase"
+    ports:
+      - "8091:8091"
+      - "11210:11210"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://user:123456@localhost:8091/pools/default/buckets/dcp-test" ]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+  mongodb:
+    image: mongo:8.0
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: dcp-test
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 2s
+      timeout: 3s
+      retries: 60 
