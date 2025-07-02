@@ -2,8 +2,8 @@ package bulk
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"strings"
 
 	config "github.com/Trendyol/go-dcp-mongodb/configs"
@@ -21,6 +21,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/sync/errgroup"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Bulk struct {
 	client              *mongo.Client
