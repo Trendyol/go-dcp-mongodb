@@ -10,30 +10,28 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func TestBulkOperations(t *testing.T) {
-	bulk := createTestBulk(t)
-
-	t.Run("TestInsertOperation", func(t *testing.T) {
-		testInsertOperation(t)
+func Test_it_should_handle_bulk_operations(t *testing.T) {
+	t.Run("it_should_handle_insert_operation", func(t *testing.T) {
+		testItShouldHandleInsertOperation(t)
 	})
 
-	t.Run("TestUpdateOperation", func(t *testing.T) {
-		testUpdateOperation(t)
+	t.Run("it_should_handle_update_operation", func(t *testing.T) {
+		testItShouldHandleUpdateOperation(t)
 	})
 
-	t.Run("TestDeleteOperation", func(t *testing.T) {
-		testDeleteOperation(t)
+	t.Run("it_should_handle_delete_operation", func(t *testing.T) {
+		testItShouldHandleDeleteOperation(t)
 	})
 
-	t.Run("TestBatchDeduplication", func(t *testing.T) {
-		testBatchDeduplication(t, bulk)
+	t.Run("it_should_handle_batch_deduplication", func(t *testing.T) {
+		testItShouldHandleBatchDeduplication(t)
 	})
 }
 
-func createTestBulk(t *testing.T) *Bulk {
+func createTestBulkWithoutConnection(t *testing.T) *Bulk {
 	cfg := &config.Config{
 		MongoDB: config.MongoDB{
-			URI:                 "mongodb://localhost:27017",
+			URI:                 "localhost:27017",
 			Database:            "test_db",
 			Collection:          "test",
 			BatchTickerDuration: 5 * time.Second,
@@ -44,17 +42,32 @@ func createTestBulk(t *testing.T) *Bulk {
 	}
 	cfg.ApplyDefaults()
 
-	bulk, err := NewBulk(cfg, func() {
-		t.Log("Checkpoint committed")
-	})
-	if err != nil {
-		t.Fatalf("Failed to create bulk processor: %v", err)
+	bulk := &Bulk{
+		client:              nil,
+		dbName:              cfg.MongoDB.Database,
+		collectionName:      cfg.MongoDB.Collection,
+		dcpCheckpointCommit: func() { t.Log("Checkpoint committed") },
+		batchTickerDuration: cfg.MongoDB.BatchTickerDuration,
+		batchTicker:         time.NewTicker(cfg.MongoDB.BatchTickerDuration),
+		batchSizeLimit:      cfg.MongoDB.BatchSizeLimit,
+		batchByteSizeLimit:  1024 * 1024,
+		concurrentRequest:   cfg.MongoDB.ConcurrentRequest,
+		batch:               make([]BatchItem, 0, cfg.MongoDB.BatchSizeLimit),
+		batchKeys:           make(map[string]int, cfg.MongoDB.BatchSizeLimit),
+		shardKeys:           cfg.MongoDB.ShardKeys,
+		metric: &Metric{
+			InsertErrorCounter:   make(map[string]int64),
+			UpdateSuccessCounter: make(map[string]int64),
+			UpdateErrorCounter:   make(map[string]int64),
+			DeleteSuccessCounter: make(map[string]int64),
+			DeleteErrorCounter:   make(map[string]int64),
+		},
 	}
 
 	return bulk
 }
 
-func testInsertOperation(t *testing.T) {
+func testItShouldHandleInsertOperation(t *testing.T) {
 	model := &mongodb.Raw{
 		Document: bson.M{
 			"_id":  "test123",
@@ -69,7 +82,7 @@ func testInsertOperation(t *testing.T) {
 	}
 }
 
-func testUpdateOperation(t *testing.T) {
+func testItShouldHandleUpdateOperation(t *testing.T) {
 	model := &mongodb.Raw{
 		Document: bson.M{
 			"name": "Updated Document",
@@ -83,7 +96,7 @@ func testUpdateOperation(t *testing.T) {
 	}
 }
 
-func testDeleteOperation(t *testing.T) {
+func testItShouldHandleDeleteOperation(t *testing.T) {
 	model := &mongodb.Raw{
 		Operation: mongodb.Delete,
 		ID:        "test123",
@@ -94,7 +107,9 @@ func testDeleteOperation(t *testing.T) {
 	}
 }
 
-func testBatchDeduplication(t *testing.T, bulk *Bulk) {
+func testItShouldHandleBatchDeduplication(t *testing.T) {
+	bulk := createTestBulkWithoutConnection(t)
+
 	key := bulk.getActionKey(&mongodb.Raw{
 		ID: "doc1",
 	})
@@ -109,7 +124,7 @@ func Test_it_should_build_shard_filter_with_configured_shard_keys(t *testing.T) 
 	// Given
 	cfg := &config.Config{
 		MongoDB: config.MongoDB{
-			URI:                 "mongodb://localhost:27017",
+			URI:                 "localhost:27017",
 			Database:            "test_db",
 			BatchTickerDuration: 5 * time.Second,
 			BatchSizeLimit:      100,
@@ -123,9 +138,11 @@ func Test_it_should_build_shard_filter_with_configured_shard_keys(t *testing.T) 
 	}
 	cfg.ApplyDefaults()
 
-	bulk, err := NewBulk(cfg, func() {})
-	if err != nil {
-		t.Fatalf("Failed to create bulk processor: %v", err)
+	bulk := &Bulk{
+		client:         nil,
+		dbName:         cfg.MongoDB.Database,
+		collectionName: "test",
+		shardKeys:      cfg.MongoDB.ShardKeys,
 	}
 
 	document := map[string]interface{}{
@@ -163,7 +180,7 @@ func Test_it_should_build_filter_with_only_id_when_no_shard_keys_configured(t *t
 	// Given
 	cfg := &config.Config{
 		MongoDB: config.MongoDB{
-			URI:                 "mongodb://localhost:27017",
+			URI:                 "localhost:27017",
 			Database:            "test_db",
 			BatchTickerDuration: 5 * time.Second,
 			BatchSizeLimit:      100,
@@ -173,9 +190,11 @@ func Test_it_should_build_filter_with_only_id_when_no_shard_keys_configured(t *t
 	}
 	cfg.ApplyDefaults()
 
-	bulk, err := NewBulk(cfg, func() {})
-	if err != nil {
-		t.Fatalf("Failed to create bulk processor: %v", err)
+	bulk := &Bulk{
+		client:         nil,
+		dbName:         cfg.MongoDB.Database,
+		collectionName: "test",
+		shardKeys:      nil,
 	}
 
 	document := map[string]interface{}{
@@ -197,5 +216,87 @@ func Test_it_should_build_filter_with_only_id_when_no_shard_keys_configured(t *t
 
 	if filter["_id"] != "test123" {
 		t.Errorf("Expected filter['_id'] = 'test123', got %v", filter["_id"])
+	}
+}
+
+func Test_getNestedValue_should_return_correct_nested_value(t *testing.T) {
+	bulk := &Bulk{}
+
+	document := map[string]interface{}{
+		"customer": map[string]interface{}{
+			"id": "customer123",
+			"profile": map[string]interface{}{
+				"name": "John Doe",
+			},
+		},
+		"tenant": map[string]interface{}{
+			"id": "tenant456",
+		},
+	}
+
+	value := bulk.getNestedValue(document, "customer.id")
+	if value != "customer123" {
+		t.Errorf("Expected 'customer123', got %v", value)
+	}
+
+	value = bulk.getNestedValue(document, "customer.profile.name")
+	if value != "John Doe" {
+		t.Errorf("Expected 'John Doe', got %v", value)
+	}
+
+	value = bulk.getNestedValue(document, "nonexistent.path")
+	if value != nil {
+		t.Errorf("Expected nil, got %v", value)
+	}
+
+	value = bulk.getNestedValue(document, "tenant.id")
+	if value != "tenant456" {
+		t.Errorf("Expected 'tenant456', got %v", value)
+	}
+}
+
+func Test_getActionKey_should_return_correct_key(t *testing.T) {
+	bulk := &Bulk{
+		collectionName: "test_collection",
+		batchIndex:     5,
+	}
+
+	model := &mongodb.Raw{
+		ID: "test123",
+		Document: map[string]interface{}{
+			"_id": "test123",
+		},
+	}
+
+	key := bulk.getActionKey(model)
+	expectedKey := "test_collection:test123"
+	if key != expectedKey {
+		t.Errorf("Expected key %s, got %s", expectedKey, key)
+	}
+
+	model = &mongodb.Raw{
+		ID: "",
+		Document: map[string]interface{}{
+			"_id": "doc456",
+		},
+	}
+
+	key = bulk.getActionKey(model)
+	expectedKey = "test_collection:doc456"
+	if key != expectedKey {
+		t.Errorf("Expected key %s, got %s", expectedKey, key)
+	}
+
+	model = &mongodb.Raw{
+		ID: "",
+		Document: map[string]interface{}{
+			"name": "test",
+		},
+	}
+
+	key = bulk.getActionKey(model)
+	expectedKey = "batch:5"
+	if key != expectedKey {
+		t.Errorf("Expected key %s, got %s", expectedKey, key)
 	}
 }
