@@ -26,7 +26,7 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Bulk struct {
 	client              *mongo.Client
-	dbName              string
+	database            *mongo.Database
 	collectionName      string
 	dcpCheckpointCommit func()
 	batchTicker         *time.Ticker
@@ -76,7 +76,7 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 
 	b := &Bulk{
 		client:              client,
-		dbName:              cfg.MongoDB.Database,
+		database:            client.Database(cfg.MongoDB.Database),
 		collectionName:      cfg.MongoDB.Collection,
 		dcpCheckpointCommit: dcpCheckpointCommit,
 		batchTickerDuration: cfg.MongoDB.BatchTickerDuration,
@@ -256,7 +256,7 @@ func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
 		defer cancel()
 
 		for collectionName, writeModels := range operations {
-			collection := b.client.Database(b.dbName).Collection(collectionName)
+			collection := b.database.Collection(collectionName)
 
 			opts := options.BulkWrite().SetOrdered(false)
 			result, err := collection.BulkWrite(ctx, writeModels, opts)
