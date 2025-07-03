@@ -23,3 +23,9 @@ mongodb:
   concurrentRequest: 1
   shardKeys:
     - "customer.id"
+  maxPoolSize: 100
+  minPoolSize: 5
+  maxIdleTimeMS: 300000  # 5 minutes
+  connectTimeoutMS: 10000  # 10 seconds
+  serverSelectionTimeoutMS: 30000  # 30 seconds
+  socketTimeoutMS: 30000  # 30 seconds
