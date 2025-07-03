@@ -207,7 +207,7 @@ func (b *Bulk) flushMessages() {
 }
 
 func (b *Bulk) bulkRequest() error {
-	eg, _ := errgroup.WithContext(context.Background())
+	eg, egCtx := errgroup.WithContext(context.Background())
 
 	chunks := helpers.ChunkSlice(b.batch, b.concurrentRequest)
 
@@ -215,7 +215,7 @@ func (b *Bulk) bulkRequest() error {
 
 	for i := range chunks {
 		if len(chunks[i]) > 0 {
-			eg.Go(b.processBatchChunk(chunks[i]))
+			eg.Go(b.processBatchChunk(egCtx, chunks[i]))
 		}
 	}
 
@@ -226,8 +226,12 @@ func (b *Bulk) bulkRequest() error {
 	return err
 }
 
-func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
+func (b *Bulk) processBatchChunk(ctx context.Context, batchItems []BatchItem) func() error {
 	return func() error {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("context cancelled before processing: %w", err)
+		}
+
 		operations := make(map[string][]mongo.WriteModel)
 
 		for _, item := range batchItems {
@@ -252,14 +256,18 @@ func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		bulkWriteCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		for collectionName, writeModels := range operations {
+			if err := ctx.Err(); err != nil {
+				return fmt.Errorf("context cancelled during processing: %w", err)
+			}
+
 			collection := b.database.Collection(collectionName)
 
 			opts := options.BulkWrite().SetOrdered(false)
-			result, err := collection.BulkWrite(ctx, writeModels, opts)
+			result, err := collection.BulkWrite(bulkWriteCtx, writeModels, opts)
 
 			if err != nil {
 				if mongoErr, ok := err.(mongo.BulkWriteException); ok {
