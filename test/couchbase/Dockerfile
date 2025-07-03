@@ -1,4 +1,4 @@
-FROM couchbase:7.6.3
+FROM couchbase:7.6.3@sha256:dc0ca4b3b34fe9c063103539ed15ea4738e966c5f4978d004394aeb3ba99dd99
 
 ADD configure.sh /configure.sh
 RUN chmod +x /configure.sh
