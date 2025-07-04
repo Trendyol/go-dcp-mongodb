@@ -125,7 +125,7 @@ func (c *Connection) Validate() error {
 		return fmt.Errorf("database is required")
 	}
 
-	if (isNotEmpty(c.Username) && isEmpty(c.Password)) || (isEmpty(c.Username) && isNotEmpty(c.Password)) {
+	if (!isEmpty(c.Username) && isEmpty(c.Password)) || (isEmpty(c.Username) && !isEmpty(c.Password)) {
 		return fmt.Errorf("username and password must be provided together")
 	}
 
@@ -143,8 +143,4 @@ func (cp *ConnectionPool) Validate() error {
 
 func isEmpty(s string) bool {
 	return strings.TrimSpace(s) == ""
-}
-
-func isNotEmpty(s string) bool {
-	return strings.TrimSpace(s) != ""
 }
