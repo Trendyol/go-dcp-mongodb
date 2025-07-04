@@ -15,16 +15,22 @@ metadata:
     collection: _default
   type: couchbase
 mongodb:
-  uri: "localhost:27017"
-  database: exampleDB
+  connection:
+    uri: "localhost:27017"
+    database: exampleDB
   collection: exampleCollection
-  batchTickerDuration: 10s
-  concurrentRequest: 1
+  batch:
+    tickerDuration: 10s
+    sizeLimit: 1000
+    byteSizeLimit: "10mb"
+    concurrentRequest: 1
+  connectionPool:
+    maxPoolSize: 100
+    minPoolSize: 5
+    maxIdleTimeMS: 300000  # 5 minutes
+  timeouts:
+    connectTimeoutMS: 10000  # 10 seconds
+    serverSelectionTimeoutMS: 30000  # 30 seconds
+    socketTimeoutMS: 30000  # 30 seconds
   shardKeys:
     - "customer.id"
-  maxPoolSize: 100
-  minPoolSize: 5
-  maxIdleTimeMS: 300000  # 5 minutes
-  connectTimeoutMS: 10000  # 10 seconds
-  serverSelectionTimeoutMS: 30000  # 30 seconds
-  socketTimeoutMS: 30000  # 30 seconds
