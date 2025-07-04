@@ -18,7 +18,7 @@ mongodb:
   uri: "mongodb:27017"
   database: exampleDB
   collection: exampleCollection
-  batchSizeLimit: 10
+  batchSizeLimit: 1
   batchTickerDuration: 10s
   concurrentRequest: 1
   shardKeys:
