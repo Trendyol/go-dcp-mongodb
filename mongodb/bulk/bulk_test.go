@@ -52,7 +52,7 @@ func createTestBulkWithoutConnection(t *testing.T) *Bulk {
 
 	bulk := &Bulk{
 		client:              nil,
-		dbName:              cfg.MongoDB.Connection.Database,
+		database:            nil,
 		collectionName:      cfg.MongoDB.Collection,
 		dcpCheckpointCommit: func() { t.Log("Checkpoint committed") },
 		batchTickerDuration: batchTickerDuration,
@@ -152,7 +152,7 @@ func Test_it_should_build_shard_filter_with_configured_shard_keys(t *testing.T) 
 
 	bulk := &Bulk{
 		client:         nil,
-		dbName:         cfg.MongoDB.Connection.Database,
+		database:       nil,
 		collectionName: "test",
 		shardKeys:      cfg.MongoDB.ShardKeys,
 	}
@@ -208,7 +208,7 @@ func Test_it_should_build_filter_with_only_id_when_no_shard_keys_configured(t *t
 
 	bulk := &Bulk{
 		client:         nil,
-		dbName:         cfg.MongoDB.Connection.Database,
+		database:       nil,
 		collectionName: "test",
 		shardKeys:      nil,
 	}

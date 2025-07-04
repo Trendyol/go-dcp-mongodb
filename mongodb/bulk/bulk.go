@@ -3,9 +3,8 @@ package bulk
 import (
 	"context"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"strings"
-
-	jsoniter "github.com/json-iterator/go"
 
 	config "github.com/Trendyol/go-dcp-mongodb/configs"
 	"github.com/Trendyol/go-dcp-mongodb/mongodb"
@@ -23,11 +22,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
 type Bulk struct {
 	client              *mongo.Client
-	dbName              string
+	database            *mongo.Database
 	collectionName      string
 	dcpCheckpointCommit func()
 	batchTicker         *time.Ticker
@@ -82,7 +79,7 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 
 	b := &Bulk{
 		client:              client,
-		dbName:              cfg.MongoDB.Connection.Database,
+		database:            client.Database(cfg.MongoDB.Connection.Database),
 		collectionName:      cfg.MongoDB.Collection,
 		dcpCheckpointCommit: dcpCheckpointCommit,
 		batchTickerDuration: batchTickerDuration,
@@ -132,7 +129,7 @@ func (b *Bulk) AddActions(ctx *models.ListenerContext, eventTime time.Time, acti
 	}
 
 	for _, action := range actions {
-		bytes, err := json.Marshal(action)
+		bytes, err := sonic.Marshal(action)
 		if err != nil {
 			logger.Log.Error("error marshaling action: %v", err)
 			continue
@@ -262,7 +259,7 @@ func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
 		defer cancel()
 
 		for collectionName, writeModels := range operations {
-			collection := b.client.Database(b.dbName).Collection(collectionName)
+			collection := b.database.Collection(collectionName)
 
 			opts := options.BulkWrite().SetOrdered(false)
 			result, err := collection.BulkWrite(ctx, writeModels, opts)
