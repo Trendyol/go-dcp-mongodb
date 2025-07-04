@@ -256,7 +256,7 @@ func (b *Bulk) processBatchChunk(ctx context.Context, batchItems []BatchItem) fu
 			}
 		}
 
-		bulkWriteCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		bulkWriteCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 
 		for collectionName, writeModels := range operations {
