@@ -3,7 +3,7 @@ package bulk
 import (
 	"context"
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/bytedance/sonic"
 	"strings"
 
 	config "github.com/Trendyol/go-dcp-mongodb/configs"
@@ -21,8 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/sync/errgroup"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Bulk struct {
 	client              *mongo.Client
@@ -126,7 +124,7 @@ func (b *Bulk) AddActions(ctx *models.ListenerContext, eventTime time.Time, acti
 	}
 
 	for _, action := range actions {
-		bytes, err := json.Marshal(action)
+		bytes, err := sonic.Marshal(action)
 		if err != nil {
 			logger.Log.Error("error marshaling action: %v", err)
 			continue
