@@ -2,7 +2,6 @@ package dcpmongodb
 
 import (
 	"errors"
-	"github.com/Trendyol/go-dcp-mongodb/metric"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -152,9 +151,6 @@ func newConnector(cf any, mapper Mapper) (Connector, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	metricCollector := metric.NewMetricCollector(connector.bulk)
-	dcp.SetMetricCollectors(metricCollector)
 
 	return connector, nil
 }
