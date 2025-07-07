@@ -105,11 +105,13 @@ mongodb:
 
 ## Exposed metrics
 
-| Metric Name                                                      | Description                   | Labels                                                                                                                                                                             | Value Type |
-|------------------------------------------------------------------|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
-| cbgo_mongodb_connector_latency_ms_current                        | Time to adding to the batch.  | N/A                                                                                                                                                                                | Gauge      |
-| cbgo_mongodb_connector_bulk_request_process_latency_ms_current   | Time to process bulk request. | N/A                                                                                                                                                                                | Gauge      |
-| cbgo_mongodb_connector_action_total_current                      | Count mongodb actions         | `action_type`: Type of action (e.g., `delete`) `result`: Result of the action (e.g., `success`, `error`)  `database_name`: The name of the database to which the action is applied | Counter    |
+| Metric Name                                                      | Description                    | Labels                                                                                                                                                                              | Value Type |
+|------------------------------------------------------------------|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| cbgo_mongodb_connector_latency_ms_current                        | Time to adding to the batch.   | N/A                                                                                                                                                                                 | Gauge      |
+| cbgo_mongodb_connector_bulk_request_process_latency_ms_current   | Time to process bulk request.  | N/A                                                                                                                                                                                 | Gauge      |
+| cbgo_mongodb_connector_update_operations_total                   | Count of update operations     | `collection`: MongoDB collection name, `status`: Operation result (`success`, `error`)                                                                                              | Counter    |
+| cbgo_mongodb_connector_delete_operations_total                   | Count of delete operations     | `collection`: MongoDB collection name, `status`: Operation result (`success`, `error`)                                                                                              | Counter    |
+
 
 You can also use all DCP-related metrics explained [here](https://github.com/Trendyol/go-dcp#exposed-metrics).
 All DCP-related metrics are automatically injected. It means you don't need to do anything.

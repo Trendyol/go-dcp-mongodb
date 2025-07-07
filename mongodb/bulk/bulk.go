@@ -6,6 +6,8 @@ import (
 	"github.com/bytedance/sonic"
 	"strings"
 
+	"github.com/Trendyol/go-dcp-mongodb/metric"
+
 	config "github.com/Trendyol/go-dcp-mongodb/configs"
 	"github.com/Trendyol/go-dcp-mongodb/mongodb"
 	"github.com/Trendyol/go-dcp-mongodb/mongodb/client"
@@ -40,8 +42,7 @@ type Bulk struct {
 	batchIndex          int
 	flushLock           sync.Mutex
 	isDcpRebalancing    bool
-	metric              *Metric
-	metricCounterMutex  sync.Mutex
+	metricsRecorder     mongodb.MetricsRecorder
 	shardKeys           []string
 }
 
@@ -49,16 +50,6 @@ type BatchItem struct {
 	Model mongodb.Model
 	Bytes []byte
 	Size  int
-}
-
-type Metric struct {
-	InsertErrorCounter          map[string]int64
-	UpdateSuccessCounter        map[string]int64
-	UpdateErrorCounter          map[string]int64
-	DeleteSuccessCounter        map[string]int64
-	DeleteErrorCounter          map[string]int64
-	ProcessLatencyMs            int64
-	BulkRequestProcessLatencyMs int64
 }
 
 func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
@@ -90,13 +81,7 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 		batch:               make([]BatchItem, 0, batchSizeLimit),
 		batchKeys:           make(map[string]int, batchSizeLimit),
 		shardKeys:           shardKeys,
-		metric: &Metric{
-			InsertErrorCounter:   make(map[string]int64),
-			UpdateSuccessCounter: make(map[string]int64),
-			UpdateErrorCounter:   make(map[string]int64),
-			DeleteSuccessCounter: make(map[string]int64),
-			DeleteErrorCounter:   make(map[string]int64),
-		},
+		metricsRecorder:     metric.NewMetricsRecorder(),
 	}
 
 	if batchCommitTickerDuration := cfg.MongoDB.Batch.CommitTickerDuration; batchCommitTickerDuration != nil {
@@ -161,7 +146,7 @@ func (b *Bulk) AddActions(ctx *models.ListenerContext, eventTime time.Time, acti
 	ctx.Ack()
 	b.flushLock.Unlock()
 
-	b.metric.ProcessLatencyMs = time.Since(eventTime).Milliseconds()
+	b.metricsRecorder.RecordProcessLatency(time.Since(eventTime).Milliseconds())
 
 	if b.batchSize >= b.batchSizeLimit || b.batchByteSize >= b.batchByteSizeLimit {
 		b.flushMessages()
@@ -224,7 +209,7 @@ func (b *Bulk) bulkRequest() error {
 
 	err := eg.Wait()
 
-	b.metric.BulkRequestProcessLatencyMs = time.Since(startedTime).Milliseconds()
+	b.metricsRecorder.RecordBulkRequestProcessLatency(time.Since(startedTime).Milliseconds())
 
 	return err
 }
@@ -321,27 +306,19 @@ func (b *Bulk) getNestedValue(document map[string]interface{}, path string) inte
 }
 
 func (b *Bulk) recordErrors(collection string, operations []mongo.WriteModel) {
-	b.metricCounterMutex.Lock()
-	defer b.metricCounterMutex.Unlock()
-
 	for _, op := range operations {
 		switch op.(type) {
-		case *mongo.InsertOneModel:
-			b.metric.InsertErrorCounter[collection]++
 		case *mongo.UpdateOneModel, *mongo.UpdateManyModel:
-			b.metric.UpdateErrorCounter[collection]++
+			b.metricsRecorder.RecordUpdateError(collection, 1)
 		case *mongo.DeleteOneModel, *mongo.DeleteManyModel:
-			b.metric.DeleteErrorCounter[collection]++
+			b.metricsRecorder.RecordDeleteError(collection, 1)
 		}
 	}
 }
 
 func (b *Bulk) recordSuccess(collection string, result *mongo.BulkWriteResult) {
-	b.metricCounterMutex.Lock()
-	defer b.metricCounterMutex.Unlock()
-
-	b.metric.UpdateSuccessCounter[collection] += result.ModifiedCount + result.UpsertedCount
-	b.metric.DeleteSuccessCounter[collection] += result.DeletedCount
+	b.metricsRecorder.RecordUpdateSuccess(collection, result.ModifiedCount+result.UpsertedCount)
+	b.metricsRecorder.RecordDeleteSuccess(collection, result.DeletedCount)
 }
 
 func (b *Bulk) checkAndCommit() {
@@ -356,16 +333,4 @@ func (b *Bulk) checkAndCommit() {
 	default:
 		return
 	}
-}
-
-func (b *Bulk) GetMetric() *Metric {
-	return b.metric
-}
-
-func (b *Bulk) LockMetrics() {
-	b.metricCounterMutex.Lock()
-}
-
-func (b *Bulk) UnlockMetrics() {
-	b.metricCounterMutex.Unlock()
 }
