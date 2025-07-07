@@ -31,6 +31,7 @@ func main() {
 				ConnectTimeoutMS:         10000, // 10 seconds
 				ServerSelectionTimeoutMS: 30000, // 30 seconds
 				SocketTimeoutMS:          30000, // 30 seconds
+				BulkRequestTimeoutMS:     30000, // 30 seconds
 			},
 			ShardKeys: []string{"customer.id"},
 		},

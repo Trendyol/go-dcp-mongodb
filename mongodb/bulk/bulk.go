@@ -3,8 +3,9 @@ package bulk
 import (
 	"context"
 	"fmt"
-	"github.com/bytedance/sonic"
 	"strings"
+
+	"github.com/bytedance/sonic"
 
 	"github.com/Trendyol/go-dcp-mongodb/metric"
 
@@ -44,6 +45,7 @@ type Bulk struct {
 	isDcpRebalancing    bool
 	metricsRecorder     mongodb.MetricsRecorder
 	shardKeys           []string
+	bulkRequestTimeout  time.Duration
 }
 
 type BatchItem struct {
@@ -67,6 +69,7 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 	batchSizeLimit := cfg.MongoDB.Batch.SizeLimit
 	batchByteSizeLimit := helpers.ResolveUnionIntOrStringValue(cfg.MongoDB.Batch.ByteSizeLimit)
 	concurrentRequest := cfg.MongoDB.Batch.ConcurrentRequest
+	bulkRequestTimeout := time.Duration(cfg.MongoDB.Timeouts.BulkRequestTimeoutMS) * time.Millisecond
 
 	b := &Bulk{
 		client:              client,
@@ -82,6 +85,7 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 		batchKeys:           make(map[string]int, batchSizeLimit),
 		shardKeys:           shardKeys,
 		metricsRecorder:     metric.NewMetricsRecorder(),
+		bulkRequestTimeout:  bulkRequestTimeout,
 	}
 
 	if batchCommitTickerDuration := cfg.MongoDB.Batch.CommitTickerDuration; batchCommitTickerDuration != nil {
@@ -240,7 +244,7 @@ func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), b.bulkRequestTimeout)
 		defer cancel()
 
 		for collectionName, writeModels := range operations {

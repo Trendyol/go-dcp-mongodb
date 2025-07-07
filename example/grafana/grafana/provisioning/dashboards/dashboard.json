@@ -566,7 +566,7 @@
             "uid": "PE4E52330B67298A4"
           },
           "editorMode": "code",
-          "expr": "sum(cbgo_deletion_total)",
+          "expr": "sum(increase(cbgo_deletion_total)",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "__auto",
@@ -1269,7 +1269,7 @@
             "uid": "PE4E52330B67298A4"
           },
           "editorMode": "code",
-          "expr": "go_memstats_alloc_bytet",
+          "expr": "go_memstats_alloc_bytes",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "__auto - bytes allocated",

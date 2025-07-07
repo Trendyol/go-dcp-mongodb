@@ -30,5 +30,6 @@ mongodb:
     connectTimeoutMS: 10000  # 10 seconds
     serverSelectionTimeoutMS: 30000  # 30 seconds
     socketTimeoutMS: 30000  # 30 seconds
+    bulkRequestTimeoutMS: 30000  # 30 seconds
   shardKeys:
     - "customer.id"
