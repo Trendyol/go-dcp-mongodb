@@ -129,7 +129,12 @@ func newConnector(cf any, mapper Mapper) (Connector, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cfg.ApplyDefaults()
+
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
 
 	connector := &connector{
 		mapper: mapper,

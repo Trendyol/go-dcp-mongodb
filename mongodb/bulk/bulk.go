@@ -63,24 +63,29 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 		shardKeys = cfg.MongoDB.ShardKeys
 	}
 
+	batchTickerDuration := cfg.MongoDB.Batch.TickerDuration
+	batchSizeLimit := cfg.MongoDB.Batch.SizeLimit
+	batchByteSizeLimit := helpers.ResolveUnionIntOrStringValue(cfg.MongoDB.Batch.ByteSizeLimit)
+	concurrentRequest := cfg.MongoDB.Batch.ConcurrentRequest
+
 	b := &Bulk{
 		client:              client,
-		database:            client.Database(cfg.MongoDB.Database),
+		database:            client.Database(cfg.MongoDB.Connection.Database),
 		collectionName:      cfg.MongoDB.Collection,
 		dcpCheckpointCommit: dcpCheckpointCommit,
-		batchTickerDuration: cfg.MongoDB.BatchTickerDuration,
-		batchTicker:         time.NewTicker(cfg.MongoDB.BatchTickerDuration),
-		batchSizeLimit:      cfg.MongoDB.BatchSizeLimit,
-		batchByteSizeLimit:  helpers.ResolveUnionIntOrStringValue(cfg.MongoDB.BatchByteSizeLimit),
-		concurrentRequest:   cfg.MongoDB.ConcurrentRequest,
-		batch:               make([]BatchItem, 0, cfg.MongoDB.BatchSizeLimit),
-		batchKeys:           make(map[string]int, cfg.MongoDB.BatchSizeLimit),
+		batchTickerDuration: batchTickerDuration,
+		batchTicker:         time.NewTicker(batchTickerDuration),
+		batchSizeLimit:      batchSizeLimit,
+		batchByteSizeLimit:  batchByteSizeLimit,
+		concurrentRequest:   concurrentRequest,
+		batch:               make([]BatchItem, 0, batchSizeLimit),
+		batchKeys:           make(map[string]int, batchSizeLimit),
 		shardKeys:           shardKeys,
 		metricsRecorder:     metric.NewMetricsRecorder(),
 	}
 
-	if cfg.MongoDB.BatchCommitTickerDuration != nil {
-		b.batchCommitTicker = time.NewTicker(*cfg.MongoDB.BatchCommitTickerDuration)
+	if batchCommitTickerDuration := cfg.MongoDB.Batch.CommitTickerDuration; batchCommitTickerDuration != nil {
+		b.batchCommitTicker = time.NewTicker(*batchCommitTickerDuration)
 	}
 
 	return b, nil
