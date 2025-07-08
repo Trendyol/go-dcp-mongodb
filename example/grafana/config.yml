@@ -18,7 +18,8 @@ mongodb:
   connection:
     uri: "mongodb:27017"
     database: exampleDB
-  collection: exampleCollection
+  collectionMapping:
+    _default: exampleCollection
   batch:
     sizeLimit: 10
     tickerDuration: 10s

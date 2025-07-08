@@ -115,7 +115,9 @@ func TestConfig_Validate(t *testing.T) {
 						URI:      "mongodb://localhost:27017",
 						Database: "testdb",
 					},
-					Collection: "testcollection",
+					CollectionMapping: map[string]string{
+						"_default": "testcollection",
+					},
 					ConnectionPool: ConnectionPool{
 						MaxPoolSize: 100,
 						MinPoolSize: 5,
@@ -165,7 +167,9 @@ func TestMongoDB_Validate(t *testing.T) {
 					URI:      "mongodb://localhost:27017",
 					Database: "testdb",
 				},
-				Collection: "testcollection",
+				CollectionMapping: map[string]string{
+					"_default": "testcollection",
+				},
 				ConnectionPool: ConnectionPool{
 					MaxPoolSize: 100,
 					MinPoolSize: 5,
@@ -179,7 +183,9 @@ func TestMongoDB_Validate(t *testing.T) {
 				Connection: Connection{
 					URI: "",
 				},
-				Collection: "testcollection",
+				CollectionMapping: map[string]string{
+					"_default": "testcollection",
+				},
 			},
 			expectErr: true,
 			errMsg:    "connection validation failed",
@@ -191,7 +197,9 @@ func TestMongoDB_Validate(t *testing.T) {
 					URI:      "mongodb://localhost:27017",
 					Database: "testdb",
 				},
-				Collection: "testcollection",
+				CollectionMapping: map[string]string{
+					"_default": "testcollection",
+				},
 				ConnectionPool: ConnectionPool{
 					MaxPoolSize: 5,
 					MinPoolSize: 10,
@@ -201,20 +209,20 @@ func TestMongoDB_Validate(t *testing.T) {
 			errMsg:    "connection pool validation failed",
 		},
 		{
-			name: "empty collection",
+			name: "empty collection mapping",
 			mongodb: &MongoDB{
 				Connection: Connection{
 					URI:      "mongodb://localhost:27017",
 					Database: "testdb",
 				},
-				Collection: "",
+				CollectionMapping: map[string]string{},
 				ConnectionPool: ConnectionPool{
 					MaxPoolSize: 100,
 					MinPoolSize: 5,
 				},
 			},
 			expectErr: true,
-			errMsg:    "collection is required",
+			errMsg:    "collectionMapping is required",
 		},
 	}
 

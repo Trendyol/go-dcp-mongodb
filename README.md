@@ -7,6 +7,7 @@ MongoDB document in near real-time.
 
 * **Custom routing** support(see [Example](#example)).
 * **Update multiple documents** for a DCP event(see [Example](#example)).
+* **Collection mapping** support for routing different Couchbase collections to different MongoDB collections.
 * Handling different DCP events such as **expiration, deletion and mutation**(see [Example](#example)).
 * **Managing batch configurations** such as maximum batch size, batch bytes, batch ticker durations.
 * **Advanced connection pool management** with configurable pool sizes and idle timeouts.
@@ -54,11 +55,11 @@ MongoDB configuration is organized into logical groups for better management:
 
 #### Connection Pool Settings (`mongodb.connectionPool`)
 
-| Variable                              | Type   | Required | Default | Description                                                                                    |
-|---------------------------------------|--------|----------|---------|------------------------------------------------------------------------------------------------|
-| `mongodb.connectionPool.maxPoolSize`  | uint64 | no       | 100     | Maximum number of connections in the connection pool                                           |
-| `mongodb.connectionPool.minPoolSize`  | uint64 | no       | 5       | Minimum number of connections to maintain in the connection pool                               |
-| `mongodb.connectionPool.maxIdleTimeMS`| int64  | no       | 300000  | Maximum time (in milliseconds) a connection can remain idle before being closed (5 minutes)    |
+| Variable                               | Type   | Required | Default | Description                                                                                 |
+|----------------------------------------|--------|----------|---------|---------------------------------------------------------------------------------------------|
+| `mongodb.connectionPool.maxPoolSize`   | uint64 | no       | 100     | Maximum number of connections in the connection pool                                        |
+| `mongodb.connectionPool.minPoolSize`   | uint64 | no       | 5       | Minimum number of connections to maintain in the connection pool                            |
+| `mongodb.connectionPool.maxIdleTimeMS` | int64  | no       | 300000  | Maximum time (in milliseconds) a connection can remain idle before being closed (5 minutes) |
 
 #### Timeout Settings (`mongodb.timeouts`)
 
@@ -70,10 +71,10 @@ MongoDB configuration is organized into logical groups for better management:
 
 #### General Settings
 
-| Variable                | Type     | Required | Default | Description                                                                                   |
-|-------------------------|----------|----------|---------|-----------------------------------------------------------------------------------------------|
-| `mongodb.collection`    | string   | yes      |         | MongoDB collection name                                                                       |
-| `mongodb.shardKeys`     | []string | no       |         | List of shard key paths from document for MongoDB sharded clusters. Used in query filters     |
+| Variable                     | Type              | Required | Default | Description                                                                                   |
+|------------------------------|-------------------|----------|---------|-----------------------------------------------------------------------------------------------|
+| `mongodb.collectionMapping`  | map[string]string | yes      |         | Maps Couchbase collection names to MongoDB collection names                                   |
+| `mongodb.shardKeys`          | []string          | no       |         | List of shard key paths from document for MongoDB sharded clusters. Used in query filters     |
 
 ### Configuration Example
 
@@ -84,7 +85,10 @@ mongodb:
     database: "exampleDB"
     username: "user"
     password: "pass"
-  collection: "exampleCollection"
+  collectionMapping:
+    _default: "exampleCollection"
+    users: "userCollection"
+    products: "productCollection"
   batch:
     sizeLimit: 1000
     byteSizeLimit: "10mb"
