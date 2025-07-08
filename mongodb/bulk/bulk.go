@@ -221,13 +221,23 @@ func (b *Bulk) flushMessages() {
 func (b *Bulk) bulkRequest() error {
 	eg, _ := errgroup.WithContext(context.Background())
 
-	chunks := helpers.ChunkSlice(b.batch, b.concurrentRequest)
-
 	startedTime := time.Now()
 
-	for i := range chunks {
-		if len(chunks[i]) > 0 {
-			eg.Go(b.processBatchChunk(chunks[i]))
+	if len(b.collectionMapping) == 1 {
+		chunks := helpers.ChunkSlice(b.batch, b.concurrentRequest)
+		b.processChunks(chunks, eg)
+	} else {
+		collectionGroups := make(map[string][]BatchItem)
+		for _, item := range b.batch {
+			if rawModel, ok := item.Model.(*mongodb.Raw); ok {
+				collection := rawModel.MongoCollection
+				collectionGroups[collection] = append(collectionGroups[collection], item)
+			}
+		}
+
+		for _, items := range collectionGroups {
+			chunks := helpers.ChunkSlice(items, b.concurrentRequest)
+			b.processChunks(chunks, eg)
 		}
 	}
 
@@ -236,6 +246,14 @@ func (b *Bulk) bulkRequest() error {
 	b.metricsRecorder.RecordBulkRequestProcessLatency(time.Since(startedTime).Milliseconds())
 
 	return err
+}
+
+func (b *Bulk) processChunks(chunks [][]BatchItem, eg *errgroup.Group) {
+	for i := range chunks {
+		if len(chunks[i]) > 0 {
+			eg.Go(b.processBatchChunk(chunks[i]))
+		}
+	}
 }
 
 func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {

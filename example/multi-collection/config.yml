@@ -5,7 +5,7 @@ username: user
 password: pass
 collectionNames:
   - _default
-  - products
+  - testCollection
 logging:
   level: info
 dcp:
