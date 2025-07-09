@@ -33,8 +33,6 @@ jobs:
 
       - name: Verify services are healthy
         run: |
-          echo "Checking container health status..."
-          docker compose ps
           echo "Verifying Couchbase is accessible..."
           timeout 60 bash -c 'until curl -f http://user:123456@localhost:8091/pools/default/buckets/dcp-test; do echo "Waiting for Couchbase..."; sleep 5; done'
           echo "Verifying MongoDB is accessible..."
