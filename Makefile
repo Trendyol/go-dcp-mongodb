@@ -23,10 +23,9 @@ compose:
 	docker compose up --wait --build --force-recreate --remove-orphans
 
 integration-test:
-	docker-compose up -d
-	sleep 20
+	docker compose up --wait --build --force-recreate --remove-orphans -d
 	cd test/integration && go test -v
-	docker-compose down
+	docker compose down
 
 tidy:
 	go mod tidy
