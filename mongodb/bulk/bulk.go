@@ -222,13 +222,13 @@ func (b *Bulk) flushMessages() {
 }
 
 func (b *Bulk) bulkRequest() error {
-	eg, _ := errgroup.WithContext(context.Background())
+	eg, egCtx := errgroup.WithContext(context.Background())
 
 	startedTime := time.Now()
 
 	if len(b.collectionMapping) == 1 {
 		chunks := helpers.ChunkSlice(b.batch, b.concurrentRequest)
-		b.processChunks(chunks, eg)
+		b.processChunks(egCtx, chunks, eg)
 	} else {
 		collectionGroups := make(map[string][]BatchItem)
 		for _, item := range b.batch {
@@ -240,7 +240,7 @@ func (b *Bulk) bulkRequest() error {
 
 		for _, items := range collectionGroups {
 			chunks := helpers.ChunkSlice(items, b.concurrentRequest)
-			b.processChunks(chunks, eg)
+			b.processChunks(egCtx, chunks, eg)
 		}
 	}
 
@@ -251,16 +251,20 @@ func (b *Bulk) bulkRequest() error {
 	return err
 }
 
-func (b *Bulk) processChunks(chunks [][]BatchItem, eg *errgroup.Group) {
+func (b *Bulk) processChunks(ctx context.Context, chunks [][]BatchItem, eg *errgroup.Group) {
 	for i := range chunks {
 		if len(chunks[i]) > 0 {
-			eg.Go(b.processBatchChunk(chunks[i]))
+			eg.Go(b.processBatchChunk(ctx, chunks[i]))
 		}
 	}
 }
 
-func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
+func (b *Bulk) processBatchChunk(ctx context.Context, batchItems []BatchItem) func() error {
 	return func() error {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("context cancelled before processing: %w", err)
+		}
+
 		operations := make(map[string][]mongo.WriteModel)
 
 		for _, item := range batchItems {
@@ -285,14 +289,14 @@ func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), b.bulkRequestTimeout)
+		bulkWriteCtx, cancel := context.WithTimeout(ctx, b.bulkRequestTimeout)
 		defer cancel()
 
 		for collectionName, writeModels := range operations {
 			collection := b.database.Collection(collectionName)
 
 			opts := options.BulkWrite().SetOrdered(false)
-			result, err := collection.BulkWrite(ctx, writeModels, opts)
+			result, err := collection.BulkWrite(bulkWriteCtx, writeModels, opts)
 
 			if err != nil {
 				if mongoErr, ok := err.(mongo.BulkWriteException); ok {
