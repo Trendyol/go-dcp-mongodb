@@ -36,6 +36,7 @@ func TestConfig_ApplyDefaults(t *testing.T) {
 						ConnectTimeoutMS:         10000,
 						ServerSelectionTimeoutMS: 30000,
 						SocketTimeoutMS:          30000,
+						BulkRequestTimeoutMS:     30000,
 					},
 				},
 			},
@@ -58,6 +59,7 @@ func TestConfig_ApplyDefaults(t *testing.T) {
 						ConnectTimeoutMS:         5000,
 						ServerSelectionTimeoutMS: 15000,
 						SocketTimeoutMS:          15000,
+						BulkRequestTimeoutMS:     20000,
 					},
 				},
 			},
@@ -78,6 +80,7 @@ func TestConfig_ApplyDefaults(t *testing.T) {
 						ConnectTimeoutMS:         5000,
 						ServerSelectionTimeoutMS: 15000,
 						SocketTimeoutMS:          15000,
+						BulkRequestTimeoutMS:     20000,
 					},
 				},
 			},
@@ -96,6 +99,7 @@ func TestConfig_ApplyDefaults(t *testing.T) {
 			assert.Equal(t, tt.expected.MongoDB.Timeouts.ConnectTimeoutMS, tt.config.MongoDB.Timeouts.ConnectTimeoutMS)
 			assert.Equal(t, tt.expected.MongoDB.Timeouts.ServerSelectionTimeoutMS, tt.config.MongoDB.Timeouts.ServerSelectionTimeoutMS)
 			assert.Equal(t, tt.expected.MongoDB.Timeouts.SocketTimeoutMS, tt.config.MongoDB.Timeouts.SocketTimeoutMS)
+			assert.Equal(t, tt.expected.MongoDB.Timeouts.BulkRequestTimeoutMS, tt.config.MongoDB.Timeouts.BulkRequestTimeoutMS)
 		})
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	config "github.com/Trendyol/go-dcp-mongodb/configs"
+	"github.com/Trendyol/go-dcp-mongodb/metric"
 	"github.com/Trendyol/go-dcp-mongodb/mongodb"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -40,6 +41,7 @@ func createTestBulkWithoutConnection(t *testing.T) *Bulk {
 	batchTickerDuration := cfg.MongoDB.Batch.TickerDuration
 	batchSizeLimit := cfg.MongoDB.Batch.SizeLimit
 	concurrentRequest := cfg.MongoDB.Batch.ConcurrentRequest
+	bulkRequestTimeout := time.Duration(cfg.MongoDB.Timeouts.BulkRequestTimeoutMS) * time.Millisecond
 
 	bulk := &Bulk{
 		client:              nil,
@@ -54,7 +56,8 @@ func createTestBulkWithoutConnection(t *testing.T) *Bulk {
 		batch:               make([]BatchItem, 0, batchSizeLimit),
 		batchKeys:           make(map[string]int, batchSizeLimit),
 		shardKeys:           cfg.MongoDB.ShardKeys,
-		metricsRecorder:     nil,
+		bulkRequestTimeout:  bulkRequestTimeout,
+		metricsRecorder:     metric.NewMetricsRecorder(),
 	}
 
 	return bulk

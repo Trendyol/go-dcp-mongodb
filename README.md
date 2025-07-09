@@ -68,6 +68,7 @@ MongoDB configuration is organized into logical groups for better management:
 | `mongodb.timeouts.connectTimeoutMS`         | int64 | no       | 10000   | Connection timeout in milliseconds (10 seconds)                                               |
 | `mongodb.timeouts.serverSelectionTimeoutMS` | int64 | no       | 30000   | Server selection timeout in milliseconds (30 seconds)                                         |
 | `mongodb.timeouts.socketTimeoutMS`          | int64 | no       | 30000   | Socket timeout in milliseconds (30 seconds)                                                   |
+| `mongodb.timeouts.bulkRequestTimeoutMS`     | int64 | no       | 30000   | Bulk request timeout in milliseconds (30 seconds)                                             |
 
 #### General Settings
 
@@ -102,6 +103,7 @@ mongodb:
     connectTimeoutMS: 10000  # 10 seconds
     serverSelectionTimeoutMS: 30000  # 30 seconds
     socketTimeoutMS: 30000  # 30 seconds
+    bulkRequestTimeoutMS: 30000  # 30 seconds
   shardKeys:
     - "customer.id"
     - "tenant.id"
