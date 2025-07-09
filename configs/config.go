@@ -49,6 +49,7 @@ type Timeouts struct {
 	ConnectTimeoutMS         int64 `yaml:"connectTimeoutMS"`
 	ServerSelectionTimeoutMS int64 `yaml:"serverSelectionTimeoutMS"`
 	SocketTimeoutMS          int64 `yaml:"socketTimeoutMS"`
+	BulkRequestTimeoutMS     int64 `yaml:"bulkRequestTimeoutMS"`
 }
 
 func (c *Config) ApplyDefaults() {
@@ -90,6 +91,10 @@ func (c *Config) ApplyDefaults() {
 
 	if c.MongoDB.Timeouts.SocketTimeoutMS == 0 {
 		c.MongoDB.Timeouts.SocketTimeoutMS = 30000 // 30 seconds
+	}
+
+	if c.MongoDB.Timeouts.BulkRequestTimeoutMS == 0 {
+		c.MongoDB.Timeouts.BulkRequestTimeoutMS = 30000 // 30 seconds
 	}
 }
 
