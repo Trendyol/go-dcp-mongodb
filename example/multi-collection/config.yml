@@ -1,8 +1,11 @@
 hosts:
-  - couchbase:8091
-bucketName: dcp-test
+  - http://localhost:8091
+bucketName: bucket
 username: user
-password: password
+password: pass
+collectionNames:
+  - _default
+  - testCollection
 logging:
   level: info
 dcp:
@@ -10,19 +13,20 @@ dcp:
     name: groupName
 metadata:
   config:
-    bucket: dcp-test
+    bucket: checkpoint-bucket
     scope: _default
     collection: _default
   type: couchbase
 mongodb:
   connection:
-    uri: "mongodb:27017"
+    uri: "localhost:27017"
     database: exampleDB
   collectionMapping:
-    _default: exampleCollection
+    _default: exampleCollection1
+    testCollection: exampleCollection2
   batch:
-    sizeLimit: 10
     tickerDuration: 10s
+    sizeLimit: 1000
     byteSizeLimit: "10mb"
     concurrentRequest: 1
   connectionPool:
@@ -33,6 +37,5 @@ mongodb:
     connectTimeoutMS: 10000  # 10 seconds
     serverSelectionTimeoutMS: 30000  # 30 seconds
     socketTimeoutMS: 30000  # 30 seconds
-    bulkRequestTimeoutMS: 30000  # 30 seconds
   shardKeys:
-    - "customer.id"
+    - "customer.id" 

@@ -3,8 +3,11 @@ package bulk
 import (
 	"context"
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
 	"strings"
+
+	"github.com/bytedance/sonic"
+
+	"github.com/Trendyol/go-dcp-mongodb/metric"
 
 	config "github.com/Trendyol/go-dcp-mongodb/configs"
 	"github.com/Trendyol/go-dcp-mongodb/mongodb"
@@ -22,12 +25,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
 type Bulk struct {
 	client              *mongo.Client
 	database            *mongo.Database
-	collectionName      string
+	collectionMapping   map[string]string
 	dcpCheckpointCommit func()
 	batchTicker         *time.Ticker
 	batchCommitTicker   *time.Ticker
@@ -42,25 +43,15 @@ type Bulk struct {
 	batchIndex          int
 	flushLock           sync.Mutex
 	isDcpRebalancing    bool
-	metric              *Metric
-	metricCounterMutex  sync.Mutex
+	metricsRecorder     mongodb.MetricsRecorder
 	shardKeys           []string
+	bulkRequestTimeout  time.Duration
 }
 
 type BatchItem struct {
 	Model mongodb.Model
 	Bytes []byte
 	Size  int
-}
-
-type Metric struct {
-	InsertErrorCounter          map[string]int64
-	UpdateSuccessCounter        map[string]int64
-	UpdateErrorCounter          map[string]int64
-	DeleteSuccessCounter        map[string]int64
-	DeleteErrorCounter          map[string]int64
-	ProcessLatencyMs            int64
-	BulkRequestProcessLatencyMs int64
 }
 
 func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
@@ -74,30 +65,31 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 		shardKeys = cfg.MongoDB.ShardKeys
 	}
 
+	batchTickerDuration := cfg.MongoDB.Batch.TickerDuration
+	batchSizeLimit := cfg.MongoDB.Batch.SizeLimit
+	batchByteSizeLimit := helpers.ResolveUnionIntOrStringValue(cfg.MongoDB.Batch.ByteSizeLimit)
+	concurrentRequest := cfg.MongoDB.Batch.ConcurrentRequest
+	bulkRequestTimeout := time.Duration(cfg.MongoDB.Timeouts.BulkRequestTimeoutMS) * time.Millisecond
+
 	b := &Bulk{
 		client:              client,
-		database:            client.Database(cfg.MongoDB.Database),
-		collectionName:      cfg.MongoDB.Collection,
+		database:            client.Database(cfg.MongoDB.Connection.Database),
+		collectionMapping:   cfg.MongoDB.CollectionMapping,
 		dcpCheckpointCommit: dcpCheckpointCommit,
-		batchTickerDuration: cfg.MongoDB.BatchTickerDuration,
-		batchTicker:         time.NewTicker(cfg.MongoDB.BatchTickerDuration),
-		batchSizeLimit:      cfg.MongoDB.BatchSizeLimit,
-		batchByteSizeLimit:  helpers.ResolveUnionIntOrStringValue(cfg.MongoDB.BatchByteSizeLimit),
-		concurrentRequest:   cfg.MongoDB.ConcurrentRequest,
-		batch:               make([]BatchItem, 0, cfg.MongoDB.BatchSizeLimit),
-		batchKeys:           make(map[string]int, cfg.MongoDB.BatchSizeLimit),
+		batchTickerDuration: batchTickerDuration,
+		batchTicker:         time.NewTicker(batchTickerDuration),
+		batchSizeLimit:      batchSizeLimit,
+		batchByteSizeLimit:  batchByteSizeLimit,
+		concurrentRequest:   concurrentRequest,
+		batch:               make([]BatchItem, 0, batchSizeLimit),
+		batchKeys:           make(map[string]int, batchSizeLimit),
 		shardKeys:           shardKeys,
-		metric: &Metric{
-			InsertErrorCounter:   make(map[string]int64),
-			UpdateSuccessCounter: make(map[string]int64),
-			UpdateErrorCounter:   make(map[string]int64),
-			DeleteSuccessCounter: make(map[string]int64),
-			DeleteErrorCounter:   make(map[string]int64),
-		},
+		metricsRecorder:     metric.NewMetricsRecorder(),
+		bulkRequestTimeout:  bulkRequestTimeout,
 	}
 
-	if cfg.MongoDB.BatchCommitTickerDuration != nil {
-		b.batchCommitTicker = time.NewTicker(*cfg.MongoDB.BatchCommitTickerDuration)
+	if batchCommitTickerDuration := cfg.MongoDB.Batch.CommitTickerDuration; batchCommitTickerDuration != nil {
+		b.batchCommitTicker = time.NewTicker(*batchCommitTickerDuration)
 	}
 
 	return b, nil
@@ -117,16 +109,28 @@ func (b *Bulk) Close() {
 	b.flushMessages()
 }
 
-func (b *Bulk) AddActions(ctx *models.ListenerContext, eventTime time.Time, actions []mongodb.Model) {
+func (b *Bulk) AddActions(
+	ctx *models.ListenerContext,
+	eventTime time.Time,
+	actions []mongodb.Model,
+	couchbaseCollectionName string,
+) {
 	b.flushLock.Lock()
+
 	if b.isDcpRebalancing {
 		logger.Log.Warn("could not add new message to batch while rebalancing")
 		b.flushLock.Unlock()
 		return
 	}
 
+	mongoDBCollectionName := b.getCollectionName(couchbaseCollectionName)
+
 	for _, action := range actions {
-		bytes, err := json.Marshal(action)
+		if rawModel, ok := action.(*mongodb.Raw); ok {
+			rawModel.MongoCollection = mongoDBCollectionName
+		}
+
+		bytes, err := sonic.Marshal(action)
 		if err != nil {
 			logger.Log.Error("error marshaling action: %v", err)
 			continue
@@ -158,21 +162,32 @@ func (b *Bulk) AddActions(ctx *models.ListenerContext, eventTime time.Time, acti
 	ctx.Ack()
 	b.flushLock.Unlock()
 
-	b.metric.ProcessLatencyMs = time.Since(eventTime).Milliseconds()
+	b.metricsRecorder.RecordProcessLatency(time.Since(eventTime).Milliseconds())
 
 	if b.batchSize >= b.batchSizeLimit || b.batchByteSize >= b.batchByteSizeLimit {
 		b.flushMessages()
 	}
 }
 
+func (b *Bulk) getCollectionName(couchbaseCollectionName string) string {
+	if mongoCollectionName, exists := b.collectionMapping[couchbaseCollectionName]; exists {
+		return mongoCollectionName
+	}
+
+	logger.Log.Error("there is no collection mapping for couchbase collection: %s", couchbaseCollectionName)
+	panic(fmt.Errorf("there is no collection mapping for couchbase collection: %s", couchbaseCollectionName))
+}
+
 func (b *Bulk) getActionKey(model mongodb.Model) string {
 	if rawModel, ok := model.(*mongodb.Raw); ok {
+		mongoCollection := rawModel.MongoCollection
+
 		if rawModel.ID != "" {
-			return fmt.Sprintf("%s:%s", b.collectionName, rawModel.ID)
+			return fmt.Sprintf("%s:%s", mongoCollection, rawModel.ID)
 		}
 
 		if id, ok := rawModel.Document["_id"]; ok {
-			return fmt.Sprintf("%s:%v", b.collectionName, id)
+			return fmt.Sprintf("%s:%v", mongoCollection, id)
 		}
 	}
 
@@ -209,21 +224,39 @@ func (b *Bulk) flushMessages() {
 func (b *Bulk) bulkRequest() error {
 	eg, egCtx := errgroup.WithContext(context.Background())
 
-	chunks := helpers.ChunkSlice(b.batch, b.concurrentRequest)
-
 	startedTime := time.Now()
 
-	for i := range chunks {
-		if len(chunks[i]) > 0 {
-			eg.Go(b.processBatchChunk(egCtx, chunks[i]))
+	if len(b.collectionMapping) == 1 {
+		chunks := helpers.ChunkSlice(b.batch, b.concurrentRequest)
+		b.processChunks(egCtx, chunks, eg)
+	} else {
+		collectionGroups := make(map[string][]BatchItem)
+		for _, item := range b.batch {
+			if rawModel, ok := item.Model.(*mongodb.Raw); ok {
+				collection := rawModel.MongoCollection
+				collectionGroups[collection] = append(collectionGroups[collection], item)
+			}
+		}
+
+		for _, items := range collectionGroups {
+			chunks := helpers.ChunkSlice(items, b.concurrentRequest)
+			b.processChunks(egCtx, chunks, eg)
 		}
 	}
 
 	err := eg.Wait()
 
-	b.metric.BulkRequestProcessLatencyMs = time.Since(startedTime).Milliseconds()
+	b.metricsRecorder.RecordBulkRequestProcessLatency(time.Since(startedTime).Milliseconds())
 
 	return err
+}
+
+func (b *Bulk) processChunks(ctx context.Context, chunks [][]BatchItem, eg *errgroup.Group) {
+	for i := range chunks {
+		if len(chunks[i]) > 0 {
+			eg.Go(b.processBatchChunk(ctx, chunks[i]))
+		}
+	}
 }
 
 func (b *Bulk) processBatchChunk(ctx context.Context, batchItems []BatchItem) func() error {
@@ -237,7 +270,7 @@ func (b *Bulk) processBatchChunk(ctx context.Context, batchItems []BatchItem) fu
 		for _, item := range batchItems {
 			model := item.Model
 			if rawModel, ok := model.(*mongodb.Raw); ok {
-				collection := b.collectionName
+				collection := rawModel.MongoCollection
 
 				var writeModel mongo.WriteModel
 				switch rawModel.Operation {
@@ -256,14 +289,10 @@ func (b *Bulk) processBatchChunk(ctx context.Context, batchItems []BatchItem) fu
 			}
 		}
 
-		bulkWriteCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		bulkWriteCtx, cancel := context.WithTimeout(ctx, b.bulkRequestTimeout)
 		defer cancel()
 
 		for collectionName, writeModels := range operations {
-			if err := ctx.Err(); err != nil {
-				return fmt.Errorf("context cancelled during processing: %w", err)
-			}
-
 			collection := b.database.Collection(collectionName)
 
 			opts := options.BulkWrite().SetOrdered(false)
@@ -326,27 +355,19 @@ func (b *Bulk) getNestedValue(document map[string]interface{}, path string) inte
 }
 
 func (b *Bulk) recordErrors(collection string, operations []mongo.WriteModel) {
-	b.metricCounterMutex.Lock()
-	defer b.metricCounterMutex.Unlock()
-
 	for _, op := range operations {
 		switch op.(type) {
-		case *mongo.InsertOneModel:
-			b.metric.InsertErrorCounter[collection]++
 		case *mongo.UpdateOneModel, *mongo.UpdateManyModel:
-			b.metric.UpdateErrorCounter[collection]++
+			b.metricsRecorder.RecordUpdateError(collection, 1)
 		case *mongo.DeleteOneModel, *mongo.DeleteManyModel:
-			b.metric.DeleteErrorCounter[collection]++
+			b.metricsRecorder.RecordDeleteError(collection, 1)
 		}
 	}
 }
 
 func (b *Bulk) recordSuccess(collection string, result *mongo.BulkWriteResult) {
-	b.metricCounterMutex.Lock()
-	defer b.metricCounterMutex.Unlock()
-
-	b.metric.UpdateSuccessCounter[collection] += result.ModifiedCount + result.UpsertedCount
-	b.metric.DeleteSuccessCounter[collection] += result.DeletedCount
+	b.metricsRecorder.RecordUpdateSuccess(collection, result.ModifiedCount+result.UpsertedCount)
+	b.metricsRecorder.RecordDeleteSuccess(collection, result.DeletedCount)
 }
 
 func (b *Bulk) checkAndCommit() {
@@ -361,16 +382,4 @@ func (b *Bulk) checkAndCommit() {
 	default:
 		return
 	}
-}
-
-func (b *Bulk) GetMetric() *Metric {
-	return b.metric
-}
-
-func (b *Bulk) LockMetrics() {
-	b.metricCounterMutex.Lock()
-}
-
-func (b *Bulk) UnlockMetrics() {
-	b.metricCounterMutex.Unlock()
 }

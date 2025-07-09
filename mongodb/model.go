@@ -16,15 +16,15 @@ type Model interface {
 }
 
 type Raw struct {
-	ID        string
-	Document  bson.M
-	Operation OperationType
+	ID              string
+	Document        bson.M
+	Operation       OperationType
+	MongoCollection string
 }
 
 type ExecArgs struct {
-	Collection string
-	Document   bson.M
-	Operation  OperationType
+	Document  bson.M
+	Operation OperationType
 }
 
 func (r *Raw) Convert() *ExecArgs {

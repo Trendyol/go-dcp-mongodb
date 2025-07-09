@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	dcpmongodb "github.com/Trendyol/go-dcp-mongodb"
-	"github.com/couchbase/gocb/v2"
 	"log"
 	"time"
+
+	dcpmongodb "github.com/Trendyol/go-dcp-mongodb"
+	"github.com/couchbase/gocb/v2"
 )
 
 func main() {

@@ -1,0 +1,31 @@
+hosts:
+  - localhost:8091
+username: user
+password: 123456
+bucketName: dcp-test
+rollbackMitigation:
+  disabled: true
+checkpoint:
+  type: manual
+dcp:
+  group:
+    name: groupName
+metadata:
+  type: couchbase
+  readOnly: true
+  config:
+    bucket: dcp-test
+    scope: _default
+    collection: _default
+mongodb:
+  connection:
+    uri: "localhost:27017"
+    database: dcp-test
+  collectionMapping:
+    _default: test
+  batch:
+    sizeLimit: 1000
+    tickerDuration: 5s
+    commitTickerDuration: 120s
+    byteSizeLimit: 90614720
+    concurrentRequest: 12 

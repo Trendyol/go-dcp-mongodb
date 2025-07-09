@@ -566,7 +566,7 @@
             "uid": "PE4E52330B67298A4"
           },
           "editorMode": "code",
-          "expr": "sum(cbgo_deletion_total)",
+          "expr": "sum(increase(cbgo_deletion_total)",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "__auto",
@@ -1269,7 +1269,7 @@
             "uid": "PE4E52330B67298A4"
           },
           "editorMode": "code",
-          "expr": "go_memstats_alloc_bytet",
+          "expr": "go_memstats_alloc_bytes",
           "format": "time_series",
           "intervalFactor": 2,
           "legendFormat": "__auto - bytes allocated",
@@ -1915,6 +1915,299 @@
       "yaxis": {
         "align": false
       }
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PE4E52330B67298A4"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 72
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PE4E52330B67298A4"
+          },
+          "editorMode": "code",
+          "expr": "rate(cbgo_mongodb_connector_update_operations_total[5m])",
+          "hide": false,
+          "legendFormat": "Update {{status}} - {{collection}}",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PE4E52330B67298A4"
+          },
+          "editorMode": "code",
+          "expr": "rate(cbgo_mongodb_connector_delete_operations_total[5m])",
+          "hide": false,
+          "legendFormat": "Delete {{status}} - {{collection}}",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "MongoDB Operations Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PE4E52330B67298A4"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 72
+      },
+      "id": 22,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PE4E52330B67298A4"
+          },
+          "editorMode": "code",
+          "expr": "cbgo_mongodb_connector_update_operations_total",
+          "hide": false,
+          "legendFormat": "Update {{status}} - {{collection}}",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PE4E52330B67298A4"
+          },
+          "editorMode": "code",
+          "expr": "cbgo_mongodb_connector_delete_operations_total",
+          "hide": false,
+          "legendFormat": "Delete {{status}} - {{collection}}",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "MongoDB Operations Total",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PE4E52330B67298A4"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto",
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "basic"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 80
+      },
+      "id": 23,
+      "options": {
+        "showHeader": true
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PE4E52330B67298A4"
+          },
+          "editorMode": "code",
+          "expr": "cbgo_mongodb_connector_update_operations_total",
+          "format": "table",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PE4E52330B67298A4"
+          },
+          "editorMode": "code",
+          "expr": "cbgo_mongodb_connector_delete_operations_total",
+          "format": "table",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "MongoDB Operations Summary",
+      "type": "table"
     }
   ],
   "refresh": "30s",
@@ -1956,6 +2249,6 @@
   "timezone": "browser",
   "title": "Go DCP MongoDB Dashboard",
   "uid": "b0d2fcb9-2383-4a78-a57a-8b00dc615902",
-  "version": 3,
+  "version": 4,
   "weekStart": ""
 }

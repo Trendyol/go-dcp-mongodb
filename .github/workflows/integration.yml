@@ -1,4 +1,4 @@
-name: Build
+name: Integration
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  integration:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,24 +28,11 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Lint
-        run: |
-          make init
-          make lint
+      - name: Start containers
+        run: make compose
 
-      - name: Install dependencies
-        run: go get .
-
-      - name: Build
-        run: go build -v ./...
-
-      - name: Test
-        run: go test -v ./...
-
-  security-gates:
-    uses: Trendyol/security-actions/.github/workflows/security-gates.yml@v1.0.4
-    needs: build
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
+      - name: Integration Test
+        run: go test -v test/integration/integration_test.go
+        env:
+          INPUT_PUBLISH: false
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

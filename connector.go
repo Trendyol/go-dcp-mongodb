@@ -2,7 +2,6 @@ package dcpmongodb
 
 import (
 	"errors"
-	"github.com/Trendyol/go-dcp-mongodb/metric"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -68,7 +67,7 @@ func (c *connector) listener(ctx *models.ListenerContext) {
 		return
 	}
 
-	c.bulk.AddActions(ctx, e.EventTime, actions)
+	c.bulk.AddActions(ctx, e.EventTime, actions, e.CollectionName)
 }
 
 type ConnectorBuilder struct {
@@ -130,7 +129,12 @@ func newConnector(cf any, mapper Mapper) (Connector, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cfg.ApplyDefaults()
+
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
 
 	connector := &connector{
 		mapper: mapper,
@@ -152,9 +156,6 @@ func newConnector(cf any, mapper Mapper) (Connector, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	metricCollector := metric.NewMetricCollector(connector.bulk)
-	dcp.SetMetricCollectors(metricCollector)
 
 	return connector, nil
 }
