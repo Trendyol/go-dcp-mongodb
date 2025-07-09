@@ -99,7 +99,29 @@ docker build -f example/struct-config/Dockerfile -t go-dcp-mongodb-struct-config
 docker run --rm --network host go-dcp-mongodb-struct-config
 ```
 
-### 5. Grafana (`grafana/`)
+### 5. Multi Collection (`multi-collection/`)
+
+Demonstrates reading data from multiple Couchbase collections and writing to different MongoDB collections.
+
+**How to run:**
+
+*Option 1: Direct Go execution*
+```bash
+cd example/multi-collection
+go mod tidy
+go run main.go
+```
+
+*Option 2: Docker*
+```bash
+# Build from project root
+docker build -f example/multi-collection/Dockerfile -t go-dcp-mongodb-multi-collection .
+
+# Run the container
+docker run --rm --network host go-dcp-mongodb-multi-collection
+```
+
+### 6. Grafana (`grafana/`)
 
 Complete monitoring setup with Grafana, Prometheus, and automatic data seeding.
 
