@@ -12,21 +12,10 @@ import (
 )
 
 func Test_it_should_handle_bulk_operations(t *testing.T) {
-	t.Run("it_should_handle_insert_operation", func(t *testing.T) {
-		testItShouldHandleInsertOperation(t)
-	})
-
-	t.Run("it_should_handle_update_operation", func(t *testing.T) {
-		testItShouldHandleUpdateOperation(t)
-	})
-
-	t.Run("it_should_handle_delete_operation", func(t *testing.T) {
-		testItShouldHandleDeleteOperation(t)
-	})
-
-	t.Run("it_should_handle_batch_deduplication", func(t *testing.T) {
-		testItShouldHandleBatchDeduplication(t)
-	})
+	testItShouldHandleInsertOperation(t)
+	testItShouldHandleUpdateOperation(t)
+	testItShouldHandleDeleteOperation(t)
+	testItShouldHandleBatchDeduplication(t)
 }
 
 func createTestBulkWithoutConnection(t *testing.T) *Bulk {
@@ -36,11 +25,13 @@ func createTestBulkWithoutConnection(t *testing.T) *Bulk {
 				URI:      "localhost:27017",
 				Database: "test_db",
 			},
-			Collection: "test",
+			CollectionMapping: map[string]string{
+				"_default": "testcollection",
+			},
 			Batch: config.BatchConfig{
 				TickerDuration:    5 * time.Second,
 				SizeLimit:         100,
-				ByteSizeLimit:     1024 * 1024, // 1MB
+				ByteSizeLimit:     1024 * 1024,
 				ConcurrentRequest: 2,
 			},
 		},
@@ -55,7 +46,7 @@ func createTestBulkWithoutConnection(t *testing.T) *Bulk {
 	bulk := &Bulk{
 		client:              nil,
 		database:            nil,
-		collectionName:      cfg.MongoDB.Collection,
+		collectionMapping:   cfg.MongoDB.CollectionMapping,
 		dcpCheckpointCommit: func() { t.Log("Checkpoint committed") },
 		batchTickerDuration: batchTickerDuration,
 		batchTicker:         time.NewTicker(batchTickerDuration),
@@ -116,7 +107,8 @@ func testItShouldHandleBatchDeduplication(t *testing.T) {
 	bulk := createTestBulkWithoutConnection(t)
 
 	key := bulk.getActionKey(&mongodb.Raw{
-		ID: "doc1",
+		ID:              "doc1",
+		MongoCollection: "test",
 	})
 
 	expectedKey := "test:doc1"
@@ -133,6 +125,9 @@ func Test_it_should_build_shard_filter_with_configured_shard_keys(t *testing.T) 
 				URI:      "localhost:27017",
 				Database: "test_db",
 			},
+			CollectionMapping: map[string]string{
+				"_default": "testcollection",
+			},
 			Batch: config.BatchConfig{
 				TickerDuration:    5 * time.Second,
 				SizeLimit:         100,
@@ -148,10 +143,10 @@ func Test_it_should_build_shard_filter_with_configured_shard_keys(t *testing.T) 
 	cfg.ApplyDefaults()
 
 	bulk := &Bulk{
-		client:         nil,
-		database:       nil,
-		collectionName: "test",
-		shardKeys:      cfg.MongoDB.ShardKeys,
+		client:            nil,
+		database:          nil,
+		collectionMapping: cfg.MongoDB.CollectionMapping,
+		shardKeys:         cfg.MongoDB.ShardKeys,
 	}
 
 	document := map[string]interface{}{
@@ -193,6 +188,9 @@ func Test_it_should_build_filter_with_only_id_when_no_shard_keys_configured(t *t
 				URI:      "localhost:27017",
 				Database: "test_db",
 			},
+			CollectionMapping: map[string]string{
+				"_default": "testcollection",
+			},
 			Batch: config.BatchConfig{
 				TickerDuration:    5 * time.Second,
 				SizeLimit:         100,
@@ -204,10 +202,10 @@ func Test_it_should_build_filter_with_only_id_when_no_shard_keys_configured(t *t
 	cfg.ApplyDefaults()
 
 	bulk := &Bulk{
-		client:         nil,
-		database:       nil,
-		collectionName: "test",
-		shardKeys:      nil,
+		client:            nil,
+		database:          nil,
+		collectionMapping: cfg.MongoDB.CollectionMapping,
+		shardKeys:         nil,
 	}
 
 	document := map[string]interface{}{
@@ -270,8 +268,8 @@ func Test_getNestedValue_should_return_correct_nested_value(t *testing.T) {
 
 func Test_getActionKey_should_return_correct_key(t *testing.T) {
 	bulk := &Bulk{
-		collectionName: "test_collection",
-		batchIndex:     5,
+		collectionMapping: map[string]string{"_default": "test_collection", "testCollection": "mongoDBTestCollection"},
+		batchIndex:        5,
 	}
 
 	model := &mongodb.Raw{
@@ -279,6 +277,7 @@ func Test_getActionKey_should_return_correct_key(t *testing.T) {
 		Document: map[string]interface{}{
 			"_id": "test123",
 		},
+		MongoCollection: "test_collection",
 	}
 
 	key := bulk.getActionKey(model)
@@ -292,10 +291,11 @@ func Test_getActionKey_should_return_correct_key(t *testing.T) {
 		Document: map[string]interface{}{
 			"_id": "doc456",
 		},
+		MongoCollection: "mongoDBTestCollection",
 	}
 
 	key = bulk.getActionKey(model)
-	expectedKey = "test_collection:doc456"
+	expectedKey = "mongoDBTestCollection:doc456"
 	if key != expectedKey {
 		t.Errorf("Expected key %s, got %s", expectedKey, key)
 	}
@@ -305,6 +305,7 @@ func Test_getActionKey_should_return_correct_key(t *testing.T) {
 		Document: map[string]interface{}{
 			"name": "test",
 		},
+		MongoCollection: "test_collection",
 	}
 
 	key = bulk.getActionKey(model)

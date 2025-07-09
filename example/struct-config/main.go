@@ -15,7 +15,9 @@ func main() {
 				URI:      "localhost:27017",
 				Database: "exampleDB",
 			},
-			Collection: "exampleCollection",
+			CollectionMapping: map[string]string{
+				"_default": "exampleCollection",
+			},
 			Batch: config.BatchConfig{
 				TickerDuration:    10 * time.Second,
 				SizeLimit:         1000,

@@ -28,7 +28,7 @@ import (
 type Bulk struct {
 	client              *mongo.Client
 	database            *mongo.Database
-	collectionName      string
+	collectionMapping   map[string]string
 	dcpCheckpointCommit func()
 	batchTicker         *time.Ticker
 	batchCommitTicker   *time.Ticker
@@ -74,7 +74,7 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 	b := &Bulk{
 		client:              client,
 		database:            client.Database(cfg.MongoDB.Connection.Database),
-		collectionName:      cfg.MongoDB.Collection,
+		collectionMapping:   cfg.MongoDB.CollectionMapping,
 		dcpCheckpointCommit: dcpCheckpointCommit,
 		batchTickerDuration: batchTickerDuration,
 		batchTicker:         time.NewTicker(batchTickerDuration),
@@ -109,15 +109,27 @@ func (b *Bulk) Close() {
 	b.flushMessages()
 }
 
-func (b *Bulk) AddActions(ctx *models.ListenerContext, eventTime time.Time, actions []mongodb.Model) {
+func (b *Bulk) AddActions(
+	ctx *models.ListenerContext,
+	eventTime time.Time,
+	actions []mongodb.Model,
+	couchbaseCollectionName string,
+) {
 	b.flushLock.Lock()
+
 	if b.isDcpRebalancing {
 		logger.Log.Warn("could not add new message to batch while rebalancing")
 		b.flushLock.Unlock()
 		return
 	}
 
+	mongoDBCollectionName := b.getCollectionName(couchbaseCollectionName)
+
 	for _, action := range actions {
+		if rawModel, ok := action.(*mongodb.Raw); ok {
+			rawModel.MongoCollection = mongoDBCollectionName
+		}
+
 		bytes, err := sonic.Marshal(action)
 		if err != nil {
 			logger.Log.Error("error marshaling action: %v", err)
@@ -157,14 +169,25 @@ func (b *Bulk) AddActions(ctx *models.ListenerContext, eventTime time.Time, acti
 	}
 }
 
+func (b *Bulk) getCollectionName(couchbaseCollectionName string) string {
+	if mongoCollectionName, exists := b.collectionMapping[couchbaseCollectionName]; exists {
+		return mongoCollectionName
+	}
+
+	logger.Log.Error("there is no collection mapping for couchbase collection: %s", couchbaseCollectionName)
+	panic(fmt.Errorf("there is no collection mapping for couchbase collection: %s", couchbaseCollectionName))
+}
+
 func (b *Bulk) getActionKey(model mongodb.Model) string {
 	if rawModel, ok := model.(*mongodb.Raw); ok {
+		mongoCollection := rawModel.MongoCollection
+
 		if rawModel.ID != "" {
-			return fmt.Sprintf("%s:%s", b.collectionName, rawModel.ID)
+			return fmt.Sprintf("%s:%s", mongoCollection, rawModel.ID)
 		}
 
 		if id, ok := rawModel.Document["_id"]; ok {
-			return fmt.Sprintf("%s:%v", b.collectionName, id)
+			return fmt.Sprintf("%s:%v", mongoCollection, id)
 		}
 	}
 
@@ -201,13 +224,23 @@ func (b *Bulk) flushMessages() {
 func (b *Bulk) bulkRequest() error {
 	eg, _ := errgroup.WithContext(context.Background())
 
-	chunks := helpers.ChunkSlice(b.batch, b.concurrentRequest)
-
 	startedTime := time.Now()
 
-	for i := range chunks {
-		if len(chunks[i]) > 0 {
-			eg.Go(b.processBatchChunk(chunks[i]))
+	if len(b.collectionMapping) == 1 {
+		chunks := helpers.ChunkSlice(b.batch, b.concurrentRequest)
+		b.processChunks(chunks, eg)
+	} else {
+		collectionGroups := make(map[string][]BatchItem)
+		for _, item := range b.batch {
+			if rawModel, ok := item.Model.(*mongodb.Raw); ok {
+				collection := rawModel.MongoCollection
+				collectionGroups[collection] = append(collectionGroups[collection], item)
+			}
+		}
+
+		for _, items := range collectionGroups {
+			chunks := helpers.ChunkSlice(items, b.concurrentRequest)
+			b.processChunks(chunks, eg)
 		}
 	}
 
@@ -218,6 +251,14 @@ func (b *Bulk) bulkRequest() error {
 	return err
 }
 
+func (b *Bulk) processChunks(chunks [][]BatchItem, eg *errgroup.Group) {
+	for i := range chunks {
+		if len(chunks[i]) > 0 {
+			eg.Go(b.processBatchChunk(chunks[i]))
+		}
+	}
+}
+
 func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
 	return func() error {
 		operations := make(map[string][]mongo.WriteModel)
@@ -225,7 +266,7 @@ func (b *Bulk) processBatchChunk(batchItems []BatchItem) func() error {
 		for _, item := range batchItems {
 			model := item.Model
 			if rawModel, ok := model.(*mongodb.Raw); ok {
-				collection := b.collectionName
+				collection := rawModel.MongoCollection
 
 				var writeModel mongo.WriteModel
 				switch rawModel.Operation {

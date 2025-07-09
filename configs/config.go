@@ -16,12 +16,13 @@ type Config struct {
 }
 
 type MongoDB struct {
-	Connection     Connection     `yaml:"connection" mapstructure:"connection"`
-	Collection     string         `yaml:"collection"`
-	Batch          BatchConfig    `yaml:"batch" mapstructure:"batch"`
-	ConnectionPool ConnectionPool `yaml:"connectionPool" mapstructure:"connectionPool"`
-	Timeouts       Timeouts       `yaml:"timeouts" mapstructure:"timeouts"`
-	ShardKeys      []string       `yaml:"shardKeys,omitempty" mapstructure:"shardKeys"`
+	Connection        Connection        `yaml:"connection" mapstructure:"connection"`
+	Collection        string            `yaml:"collection"`
+	CollectionMapping map[string]string `yaml:"collectionMapping" mapstructure:"collectionMapping"`
+	Batch             BatchConfig       `yaml:"batch" mapstructure:"batch"`
+	ConnectionPool    ConnectionPool    `yaml:"connectionPool" mapstructure:"connectionPool"`
+	Timeouts          Timeouts          `yaml:"timeouts" mapstructure:"timeouts"`
+	ShardKeys         []string          `yaml:"shardKeys,omitempty" mapstructure:"shardKeys"`
 }
 
 type Connection struct {
@@ -114,8 +115,8 @@ func (m *MongoDB) Validate() error {
 		return fmt.Errorf("connection pool validation failed: %w", err)
 	}
 
-	if isEmpty(m.Collection) {
-		return fmt.Errorf("collection is required")
+	if len(m.CollectionMapping) == 0 {
+		return fmt.Errorf("collectionMapping is required")
 	}
 
 	return nil

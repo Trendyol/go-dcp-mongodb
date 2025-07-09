@@ -67,7 +67,7 @@ func (c *connector) listener(ctx *models.ListenerContext) {
 		return
 	}
 
-	c.bulk.AddActions(ctx, e.EventTime, actions)
+	c.bulk.AddActions(ctx, e.EventTime, actions, e.CollectionName)
 }
 
 type ConnectorBuilder struct {

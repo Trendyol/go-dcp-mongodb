@@ -4,7 +4,7 @@ WORKDIR /project
 
 COPY . .
 
-WORKDIR /project/example/grafana
+WORKDIR /project/example/multi-collection
 
 RUN go mod download
 RUN CGO_ENABLED=0 go build -a -o example main.go
@@ -16,7 +16,7 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates
 
 USER nobody
-COPY --from=builder --chown=nobody:nobody /project/example/grafana/example .
-COPY --from=builder --chown=nobody:nobody /project/example/grafana/config.yml ./config.yml
+COPY --from=builder --chown=nobody:nobody /project/example/multi-collection/example .
+COPY --from=builder --chown=nobody:nobody /project/example/multi-collection/config.yml ./config.yml
 
 ENTRYPOINT ["./example"]
