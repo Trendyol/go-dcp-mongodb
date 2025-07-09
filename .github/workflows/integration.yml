@@ -31,12 +31,15 @@ jobs:
       - name: Start containers
         run: docker compose up --wait --build --force-recreate --remove-orphans
 
-      - name: Wait for services to be ready
+      - name: Verify services are healthy
         run: |
-          echo "Waiting for Couchbase to be ready..."
-          timeout 300 bash -c 'until curl -f http://user:123456@localhost:8091/pools/default/buckets/dcp-test; do sleep 5; done'
-          echo "Waiting for MongoDB to be ready..."
-          timeout 60 bash -c 'until mongosh --eval "db.adminCommand('\''ping'\'')" mongodb://localhost:27017/dcp-test; do sleep 2; done'
+          echo "Checking container health status..."
+          docker compose ps
+          echo "Verifying Couchbase is accessible..."
+          timeout 60 bash -c 'until curl -f http://user:123456@localhost:8091/pools/default/buckets/dcp-test; do echo "Waiting for Couchbase..."; sleep 5; done'
+          echo "Verifying MongoDB is accessible..."
+          timeout 60 bash -c 'until nc -z localhost 27017; do echo "Waiting for MongoDB..."; sleep 2; done'
+          echo "All services are ready!"
 
       - name: Integration Test
         run: go test -v test/integration/integration_test.go
