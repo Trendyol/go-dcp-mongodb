@@ -19,6 +19,15 @@ lint:
 test:
 	go test ./... -bench . -benchmem
 
+compose:
+	docker compose up --wait --build --force-recreate --remove-orphans
+
+integration-test:
+	docker-compose up -d
+	sleep 20
+	cd test/integration && go test -v
+	docker-compose down
+
 tidy:
 	go mod tidy
 	cd example/simple && go mod tidy && cd ../..
@@ -26,3 +35,4 @@ tidy:
 	cd example/simple-logger && go mod tidy && cd ../..
 	cd example/struct-config && go mod tidy && cd ../..
 	cd example/grafana && go mod tidy && cd ../..
+	cd test/integration && go mod tidy && cd ../..
