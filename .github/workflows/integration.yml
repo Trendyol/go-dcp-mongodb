@@ -29,10 +29,22 @@ jobs:
           go-version: '1.24'
 
       - name: Start containers
-        run: make compose
+        run: docker compose up --wait --build --force-recreate --remove-orphans
+
+      - name: Verify services are healthy
+        run: |
+          echo "Verifying Couchbase is accessible..."
+          timeout 60 bash -c 'until curl -f http://user:123456@localhost:8091/pools/default/buckets/dcp-test; do echo "Waiting for Couchbase..."; sleep 5; done'
+          echo "Verifying MongoDB is accessible..."
+          timeout 60 bash -c 'until nc -z localhost 27017; do echo "Waiting for MongoDB..."; sleep 2; done'
+          echo "All services are ready!"
 
       - name: Integration Test
         run: go test -v test/integration/integration_test.go
         env:
           INPUT_PUBLISH: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down
