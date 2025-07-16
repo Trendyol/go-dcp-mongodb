@@ -126,6 +126,33 @@ All DCP-related metrics are automatically injected. It means you don't need to d
 
 [Grafana & Prometheus Example](example/grafana)
 
+## Batch Processing and Partial Write Behavior
+
+### Understanding Chunk Processing
+
+When processing DCP events, if the `concurrentRequest` parameter is set the connector organizes them into batches and then further divides these batches into smaller chunks for parallel processing.
+
+#### How Chunking Works
+
+1. **Batch Formation**: DCP events accumulate in a batch until reaching configured limits (`sizeLimit`, `byteSizeLimit`, or `tickerDuration`)
+2. **Chunk Division**: The batch is divided into smaller chunks based on the `concurrentRequest` setting
+3. **Parallel Processing**: Each chunk is processed concurrently using goroutines for better performance
+4. **MongoDB Operations**: Each chunk performs bulk write operations to MongoDB independently
+
+#### Partial Write Scenario
+
+**Important**: When processing chunks in parallel, if any single chunk fails, the entire batch operation is aborted, even if other chunks have already successfully written their data to MongoDB.
+
+#### Implications
+
+**Partial Write State**: When a batch fails after some chunks have succeeded:
+- Successfully processed events are already persisted in MongoDB
+- Failed chunks events remain unprocessed in DCP
+- DCP checkpoint is NOT advanced for the failed batch
+- Upon restart, ALL events in the batch (including already processed ones) will be reprocessed
+
+**This behavior is should not problematic** since the connector uses upsert operations by default, ensuring that reprocessing the same events will not cause data inconsistency. However, users should be aware of this behavior for specific use cases where it might be relevant For such cases, you may want to reduce `concurrentRequest` to 1 to minimize the scope of potential reprocessing.
+
 ## Contributing
 
 Go Dcp MongoDB is always open for direct contributions. For more information please check
