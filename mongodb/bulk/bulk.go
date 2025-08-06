@@ -26,26 +26,26 @@ import (
 )
 
 type Bulk struct {
-	client              *mongo.Client
-	database            *mongo.Database
-	collectionMapping   map[string]string
-	dcpCheckpointCommit func()
-	batchTicker         *time.Ticker
-	batchCommitTicker   *time.Ticker
-	batchTickerDuration time.Duration
-	batchSize           int
-	batchSizeLimit      int
-	batchByteSizeLimit  int
-	batchByteSize       int
-	concurrentRequest   int
-	batch               []BatchItem
-	batchKeys           map[string]int
-	batchIndex          int
-	flushLock           sync.Mutex
-	isDcpRebalancing    bool
-	metricsRecorder     mongodb.MetricsRecorder
-	shardKeys           []string
-	bulkRequestTimeout  time.Duration
+	client                 *mongo.Client
+	database               *mongo.Database
+	collectionMapping      map[string]string
+	dcpCheckpointCommit    func()
+	batchTicker            *time.Ticker
+	batchCommitTicker      *time.Ticker
+	batchTickerDuration    time.Duration
+	batchSize              int
+	batchMessageCountLimit int
+	batchByteSizeLimit     int
+	batchByteSize          int
+	concurrentRequest      int
+	batch                  []BatchItem
+	batchKeys              map[string]int
+	batchIndex             int
+	flushLock              sync.Mutex
+	isDcpRebalancing       bool
+	metricsRecorder        mongodb.MetricsRecorder
+	shardKeys              []string
+	bulkRequestTimeout     time.Duration
 }
 
 type BatchItem struct {
@@ -66,26 +66,26 @@ func NewBulk(cfg *config.Config, dcpCheckpointCommit func()) (*Bulk, error) {
 	}
 
 	batchTickerDuration := cfg.MongoDB.Batch.TickerDuration
-	batchSizeLimit := cfg.MongoDB.Batch.SizeLimit
+	batchMessageCountLimit := cfg.MongoDB.Batch.MessageCountLimit
 	batchByteSizeLimit := helpers.ResolveUnionIntOrStringValue(cfg.MongoDB.Batch.ByteSizeLimit)
 	concurrentRequest := cfg.MongoDB.Batch.ConcurrentRequest
 	bulkRequestTimeout := time.Duration(cfg.MongoDB.Timeouts.BulkRequestTimeoutMS) * time.Millisecond
 
 	b := &Bulk{
-		client:              client,
-		database:            client.Database(cfg.MongoDB.Connection.Database),
-		collectionMapping:   cfg.MongoDB.CollectionMapping,
-		dcpCheckpointCommit: dcpCheckpointCommit,
-		batchTickerDuration: batchTickerDuration,
-		batchTicker:         time.NewTicker(batchTickerDuration),
-		batchSizeLimit:      batchSizeLimit,
-		batchByteSizeLimit:  batchByteSizeLimit,
-		concurrentRequest:   concurrentRequest,
-		batch:               make([]BatchItem, 0, batchSizeLimit),
-		batchKeys:           make(map[string]int, batchSizeLimit),
-		shardKeys:           shardKeys,
-		metricsRecorder:     metric.NewMetricsRecorder(),
-		bulkRequestTimeout:  bulkRequestTimeout,
+		client:                 client,
+		database:               client.Database(cfg.MongoDB.Connection.Database),
+		collectionMapping:      cfg.MongoDB.CollectionMapping,
+		dcpCheckpointCommit:    dcpCheckpointCommit,
+		batchTickerDuration:    batchTickerDuration,
+		batchTicker:            time.NewTicker(batchTickerDuration),
+		batchMessageCountLimit: batchMessageCountLimit,
+		batchByteSizeLimit:     batchByteSizeLimit,
+		concurrentRequest:      concurrentRequest,
+		batch:                  make([]BatchItem, 0, batchMessageCountLimit),
+		batchKeys:              make(map[string]int, batchMessageCountLimit),
+		shardKeys:              shardKeys,
+		metricsRecorder:        metric.NewMetricsRecorder(),
+		bulkRequestTimeout:     bulkRequestTimeout,
 	}
 
 	if batchCommitTickerDuration := cfg.MongoDB.Batch.CommitTickerDuration; batchCommitTickerDuration != nil {
@@ -164,7 +164,7 @@ func (b *Bulk) AddActions(
 
 	b.metricsRecorder.RecordProcessLatency(time.Since(eventTime).Milliseconds())
 
-	if b.batchSize >= b.batchSizeLimit || b.batchByteSize >= b.batchByteSizeLimit {
+	if b.batchSize >= b.batchMessageCountLimit || b.batchByteSize >= b.batchByteSizeLimit {
 		b.flushMessages()
 	}
 }
@@ -212,7 +212,7 @@ func (b *Bulk) flushMessages() {
 		b.batchTicker.Reset(b.batchTickerDuration)
 
 		b.batch = b.batch[:0]
-		b.batchKeys = make(map[string]int, b.batchSizeLimit)
+		b.batchKeys = make(map[string]int, b.batchMessageCountLimit)
 		b.batchIndex = 0
 		b.batchSize = 0
 		b.batchByteSize = 0

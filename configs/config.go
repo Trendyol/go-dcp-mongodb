@@ -33,7 +33,7 @@ type Connection struct {
 }
 
 type BatchConfig struct {
-	SizeLimit            int            `yaml:"sizeLimit"`
+	MessageCountLimit    int            `yaml:"messageCountLimit"`
 	ByteSizeLimit        any            `yaml:"byteSizeLimit"`
 	ConcurrentRequest    int            `yaml:"concurrentRequest"`
 	TickerDuration       time.Duration  `yaml:"tickerDuration"`
@@ -58,8 +58,8 @@ func (c *Config) ApplyDefaults() {
 		c.MongoDB.Batch.TickerDuration = 10 * time.Second
 	}
 
-	if c.MongoDB.Batch.SizeLimit == 0 {
-		c.MongoDB.Batch.SizeLimit = 1000
+	if c.MongoDB.Batch.MessageCountLimit == 0 {
+		c.MongoDB.Batch.MessageCountLimit = 1000
 	}
 
 	if c.MongoDB.Batch.ByteSizeLimit == nil {
