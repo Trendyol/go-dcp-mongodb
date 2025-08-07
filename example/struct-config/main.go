@@ -20,7 +20,7 @@ func main() {
 			},
 			Batch: config.BatchConfig{
 				TickerDuration:    10 * time.Second,
-				SizeLimit:         1000,
+				MessageCountLimit: 1000,
 				ByteSizeLimit:     "10mb",
 				ConcurrentRequest: 1,
 			},

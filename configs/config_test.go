@@ -23,7 +23,7 @@ func TestConfig_ApplyDefaults(t *testing.T) {
 				MongoDB: MongoDB{
 					Batch: BatchConfig{
 						TickerDuration:    10 * time.Second,
-						SizeLimit:         1000,
+						MessageCountLimit: 1000,
 						ByteSizeLimit:     helpers.ResolveUnionIntOrStringValue("10mb"),
 						ConcurrentRequest: 1,
 					},
@@ -47,7 +47,7 @@ func TestConfig_ApplyDefaults(t *testing.T) {
 				MongoDB: MongoDB{
 					Batch: BatchConfig{
 						TickerDuration:    5 * time.Second,
-						SizeLimit:         500,
+						MessageCountLimit: 500,
 						ConcurrentRequest: 2,
 					},
 					ConnectionPool: ConnectionPool{
@@ -67,7 +67,7 @@ func TestConfig_ApplyDefaults(t *testing.T) {
 				MongoDB: MongoDB{
 					Batch: BatchConfig{
 						TickerDuration:    5 * time.Second,
-						SizeLimit:         500,
+						MessageCountLimit: 500,
 						ByteSizeLimit:     helpers.ResolveUnionIntOrStringValue("10mb"),
 						ConcurrentRequest: 2,
 					},
@@ -91,7 +91,7 @@ func TestConfig_ApplyDefaults(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.config.ApplyDefaults()
 			assert.Equal(t, tt.expected.MongoDB.Batch.TickerDuration, tt.config.MongoDB.Batch.TickerDuration)
-			assert.Equal(t, tt.expected.MongoDB.Batch.SizeLimit, tt.config.MongoDB.Batch.SizeLimit)
+			assert.Equal(t, tt.expected.MongoDB.Batch.MessageCountLimit, tt.config.MongoDB.Batch.MessageCountLimit)
 			assert.Equal(t, tt.expected.MongoDB.Batch.ConcurrentRequest, tt.config.MongoDB.Batch.ConcurrentRequest)
 			assert.Equal(t, tt.expected.MongoDB.ConnectionPool.MaxPoolSize, tt.config.MongoDB.ConnectionPool.MaxPoolSize)
 			assert.Equal(t, tt.expected.MongoDB.ConnectionPool.MinPoolSize, tt.config.MongoDB.ConnectionPool.MinPoolSize)

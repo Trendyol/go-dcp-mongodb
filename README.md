@@ -45,13 +45,13 @@ MongoDB configuration is organized into logical groups for better management:
 
 #### Batch Processing Settings (`mongodb.batch`)
 
-| Variable                                | Type          | Required | Default | Description                                                                                                                                                 |
-|-----------------------------------------|---------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `mongodb.batch.sizeLimit`               | int           | no       | 1000    | Maximum message count for batch, if exceed flush will be triggered                                                                                          |
-| `mongodb.batch.byteSizeLimit`           | int, string   | no       | 10mb    | Maximum size(byte) for batch, if exceed flush will be triggered. Supports units like "10mb", "1gb"                                                          |
-| `mongodb.batch.tickerDuration`          | time.Duration | no       | 10s     | Batch is being flushed automatically at specific time intervals for long waiting messages in batch                                                          |
-| `mongodb.batch.commitTickerDuration`    | time.Duration | no       | 0s      | Configures checkpoint offset save time, By default, after batch flushing, the offsets are updated immediately, this period can be increased for performance |
-| `mongodb.batch.concurrentRequest`       | int           | no       | 1       | Concurrent bulk request count                                                                                                                               |
+| Variable                             | Type          | Required | Default | Description                                                                                                                                                 |
+|--------------------------------------|---------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `mongodb.batch.messageCountLimit`    | int           | no       | 1000    | Maximum message count for batch, if exceed flush will be triggered                                                                                          |
+| `mongodb.batch.byteSizeLimit`        | int, string   | no       | 10mb    | Maximum size(byte) for batch, if exceed flush will be triggered. Supports units like "10mb", "1gb"                                                          |
+| `mongodb.batch.tickerDuration`       | time.Duration | no       | 10s     | Batch is being flushed automatically at specific time intervals for long waiting messages in batch                                                          |
+| `mongodb.batch.commitTickerDuration` | time.Duration | no       | 0s      | Configures checkpoint offset save time, By default, after batch flushing, the offsets are updated immediately, this period can be increased for performance |
+| `mongodb.batch.concurrentRequest`    | int           | no       | 1       | Concurrent bulk request count                                                                                                                               |
 
 #### Connection Pool Settings (`mongodb.connectionPool`)
 
@@ -91,7 +91,7 @@ mongodb:
     users: "userCollection"
     products: "productCollection"
   batch:
-    sizeLimit: 1000
+    messageCountLimit: 1000
     byteSizeLimit: "10mb"
     tickerDuration: 10s
     concurrentRequest: 2
@@ -125,6 +125,10 @@ All DCP-related metrics are automatically injected. It means you don't need to d
 ## Grafana Metric Dashboard
 
 [Grafana & Prometheus Example](example/grafana)
+
+## Batch Processing and Partial Write Behavior
+
+**Partial Write Behavior should not be problematic** since the connector uses upsert operations by default, ensuring that reprocessing the same events will not cause data inconsistency. However, users should be aware of this behavior for specific use cases where it might be relevant For such cases, you may want to reduce `concurrentRequest` to 1 to minimize the scope of potential reprocessing.
 
 ## Contributing
 

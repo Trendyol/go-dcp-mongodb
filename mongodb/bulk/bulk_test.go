@@ -30,7 +30,7 @@ func createTestBulkWithoutConnection(t *testing.T) *Bulk {
 			},
 			Batch: config.BatchConfig{
 				TickerDuration:    5 * time.Second,
-				SizeLimit:         100,
+				MessageCountLimit: 100,
 				ByteSizeLimit:     1024 * 1024,
 				ConcurrentRequest: 2,
 			},
@@ -39,25 +39,25 @@ func createTestBulkWithoutConnection(t *testing.T) *Bulk {
 	cfg.ApplyDefaults()
 
 	batchTickerDuration := cfg.MongoDB.Batch.TickerDuration
-	batchSizeLimit := cfg.MongoDB.Batch.SizeLimit
+	batchMessageCountLimit := cfg.MongoDB.Batch.MessageCountLimit
 	concurrentRequest := cfg.MongoDB.Batch.ConcurrentRequest
 	bulkRequestTimeout := time.Duration(cfg.MongoDB.Timeouts.BulkRequestTimeoutMS) * time.Millisecond
 
 	bulk := &Bulk{
-		client:              nil,
-		database:            nil,
-		collectionMapping:   cfg.MongoDB.CollectionMapping,
-		dcpCheckpointCommit: func() { t.Log("Checkpoint committed") },
-		batchTickerDuration: batchTickerDuration,
-		batchTicker:         time.NewTicker(batchTickerDuration),
-		batchSizeLimit:      batchSizeLimit,
-		batchByteSizeLimit:  1024 * 1024,
-		concurrentRequest:   concurrentRequest,
-		batch:               make([]BatchItem, 0, batchSizeLimit),
-		batchKeys:           make(map[string]int, batchSizeLimit),
-		shardKeys:           cfg.MongoDB.ShardKeys,
-		bulkRequestTimeout:  bulkRequestTimeout,
-		metricsRecorder:     metric.NewMetricsRecorder(),
+		client:                 nil,
+		database:               nil,
+		collectionMapping:      cfg.MongoDB.CollectionMapping,
+		dcpCheckpointCommit:    func() { t.Log("Checkpoint committed") },
+		batchTickerDuration:    batchTickerDuration,
+		batchTicker:            time.NewTicker(batchTickerDuration),
+		batchMessageCountLimit: batchMessageCountLimit,
+		batchByteSizeLimit:     1024 * 1024,
+		concurrentRequest:      concurrentRequest,
+		batch:                  make([]BatchItem, 0, batchMessageCountLimit),
+		batchKeys:              make(map[string]int, batchMessageCountLimit),
+		shardKeys:              cfg.MongoDB.ShardKeys,
+		bulkRequestTimeout:     bulkRequestTimeout,
+		metricsRecorder:        metric.NewMetricsRecorder(),
 	}
 
 	return bulk
@@ -130,7 +130,7 @@ func Test_it_should_build_shard_filter_with_configured_shard_keys(t *testing.T) 
 			},
 			Batch: config.BatchConfig{
 				TickerDuration:    5 * time.Second,
-				SizeLimit:         100,
+				MessageCountLimit: 100,
 				ByteSizeLimit:     1024 * 1024,
 				ConcurrentRequest: 2,
 			},
@@ -193,7 +193,7 @@ func Test_it_should_build_filter_with_only_id_when_no_shard_keys_configured(t *t
 			},
 			Batch: config.BatchConfig{
 				TickerDuration:    5 * time.Second,
-				SizeLimit:         100,
+				MessageCountLimit: 100,
 				ByteSizeLimit:     1024 * 1024,
 				ConcurrentRequest: 2,
 			},

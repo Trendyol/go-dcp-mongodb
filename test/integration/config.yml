@@ -24,7 +24,7 @@ mongodb:
   collectionMapping:
     _default: test
   batch:
-    sizeLimit: 1000
+    messageCountLimit: 1000
     tickerDuration: 5s
     commitTickerDuration: 120s
     byteSizeLimit: 90614720
