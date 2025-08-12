@@ -8,11 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint:funlen
 func TestConfig_ApplyDefaults(t *testing.T) {
 	tests := []struct {
-		name     string
 		config   *Config
 		expected *Config
+		name     string
 	}{
 		{
 			name: "should apply all default values",
@@ -106,10 +107,10 @@ func TestConfig_ApplyDefaults(t *testing.T) {
 
 func TestConfig_Validate(t *testing.T) {
 	tests := []struct {
-		name      string
 		config    *Config
-		expectErr bool
+		name      string
 		errMsg    string
+		expectErr bool
 	}{
 		{
 			name: "valid config",
@@ -157,12 +158,13 @@ func TestConfig_Validate(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestMongoDB_Validate(t *testing.T) {
 	tests := []struct {
-		name      string
 		mongodb   *MongoDB
-		expectErr bool
+		name      string
 		errMsg    string
+		expectErr bool
 	}{
 		{
 			name: "valid mongodb config",
@@ -243,12 +245,13 @@ func TestMongoDB_Validate(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestConnection_Validate(t *testing.T) {
 	tests := []struct {
-		name       string
 		connection *Connection
-		expectErr  bool
+		name       string
 		errMsg     string
+		expectErr  bool
 	}{
 		{
 			name: "valid connection",
@@ -323,10 +326,10 @@ func TestConnection_Validate(t *testing.T) {
 
 func TestConnectionPool_Validate(t *testing.T) {
 	tests := []struct {
-		name           string
 		connectionPool *ConnectionPool
-		expectErr      bool
+		name           string
 		errMsg         string
+		expectErr      bool
 	}{
 		{
 			name: "valid connection pool",

@@ -16,13 +16,13 @@ type Config struct {
 }
 
 type MongoDB struct {
+	CollectionMapping map[string]string `yaml:"collectionMapping" mapstructure:"collectionMapping"`
 	Connection        Connection        `yaml:"connection" mapstructure:"connection"`
 	Collection        string            `yaml:"collection"`
-	CollectionMapping map[string]string `yaml:"collectionMapping" mapstructure:"collectionMapping"`
-	Batch             BatchConfig       `yaml:"batch" mapstructure:"batch"`
-	ConnectionPool    ConnectionPool    `yaml:"connectionPool" mapstructure:"connectionPool"`
-	Timeouts          Timeouts          `yaml:"timeouts" mapstructure:"timeouts"`
 	ShardKeys         []string          `yaml:"shardKeys,omitempty" mapstructure:"shardKeys"`
+	Batch             BatchConfig       `yaml:"batch" mapstructure:"batch"`
+	Timeouts          Timeouts          `yaml:"timeouts" mapstructure:"timeouts"`
+	ConnectionPool    ConnectionPool    `yaml:"connectionPool" mapstructure:"connectionPool"`
 }
 
 type Connection struct {
@@ -33,11 +33,11 @@ type Connection struct {
 }
 
 type BatchConfig struct {
-	MessageCountLimit    int            `yaml:"messageCountLimit"`
 	ByteSizeLimit        any            `yaml:"byteSizeLimit"`
+	CommitTickerDuration *time.Duration `yaml:"commitTickerDuration"`
+	MessageCountLimit    int            `yaml:"messageCountLimit"`
 	ConcurrentRequest    int            `yaml:"concurrentRequest"`
 	TickerDuration       time.Duration  `yaml:"tickerDuration"`
-	CommitTickerDuration *time.Duration `yaml:"commitTickerDuration"`
 }
 
 type ConnectionPool struct {
