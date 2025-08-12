@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/bytedance/sonic"
 
@@ -12,9 +14,6 @@ import (
 	config "github.com/Trendyol/go-dcp-mongodb/configs"
 	"github.com/Trendyol/go-dcp-mongodb/mongodb"
 	"github.com/Trendyol/go-dcp-mongodb/mongodb/client"
-
-	"sync"
-	"time"
 
 	"github.com/Trendyol/go-dcp/helpers"
 	"github.com/Trendyol/go-dcp/logger"
@@ -26,26 +25,26 @@ import (
 )
 
 type Bulk struct {
+	metricsRecorder        mongodb.MetricsRecorder
 	client                 *mongo.Client
 	database               *mongo.Database
 	collectionMapping      map[string]string
 	dcpCheckpointCommit    func()
 	batchTicker            *time.Ticker
 	batchCommitTicker      *time.Ticker
-	batchTickerDuration    time.Duration
-	batchSize              int
-	batchMessageCountLimit int
-	batchByteSizeLimit     int
+	batchKeys              map[string]int
+	shardKeys              []string
+	batch                  []BatchItem
 	batchByteSize          int
 	concurrentRequest      int
-	batch                  []BatchItem
-	batchKeys              map[string]int
+	batchByteSizeLimit     int
+	batchMessageCountLimit int
 	batchIndex             int
+	batchSize              int
+	batchTickerDuration    time.Duration
+	bulkRequestTimeout     time.Duration
 	flushLock              sync.Mutex
 	isDcpRebalancing       bool
-	metricsRecorder        mongodb.MetricsRecorder
-	shardKeys              []string
-	bulkRequestTimeout     time.Duration
 }
 
 type BatchItem struct {
@@ -297,7 +296,6 @@ func (b *Bulk) processBatchChunk(ctx context.Context, batchItems []BatchItem) fu
 
 			opts := options.BulkWrite().SetOrdered(false)
 			result, err := collection.BulkWrite(bulkWriteCtx, writeModels, opts)
-
 			if err != nil {
 				if mongoErr, ok := err.(mongo.BulkWriteException); ok {
 					for _, writeErr := range mongoErr.WriteErrors {
