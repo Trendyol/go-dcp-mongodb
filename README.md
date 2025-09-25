@@ -1,3 +1,5 @@
+
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Trendyol/go-dcp-mongodb/badge)](https://scorecard.dev/viewer/?uri=github.com/Trendyol/go-dcp-mongodb)
 # Go Dcp MongoDB
 
 **Go Dcp MongoDB** streams documents from Couchbase Database Change Protocol (DCP) and writes to
